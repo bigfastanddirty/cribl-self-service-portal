@@ -562,3 +562,11 @@ Refresh discovery on submission, not only initial catalog load. Return no raw so
 metadata or credentials to the browser. Existing enable/token/deployment guards and
 no-restart restrictions remain unchanged. The external VIP's reachability and port
 forwarding still require target-environment verification.
+
+## Live enable verification correction (2026-10-19)
+
+A local enable test established that source GET responses include a changing live
+status object. Exclude top-level status from source PATCH bodies and enable-intent
+configuration digests; it is runtime telemetry, not source configuration. Preserve
+all actual configuration fields and existing tokens. A regression test changes
+status between every read. No Worker restart is authorized by this correction.

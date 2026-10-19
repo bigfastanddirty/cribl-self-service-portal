@@ -1,7 +1,8 @@
 import { randomBytes, createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile, rename, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
-const sourceDigest=value=>createHash('sha256').update(JSON.stringify(value,(_key,v)=>v && typeof v==='object' && !Array.isArray(v)?Object.fromEntries(Object.entries(v).sort(([a],[b])=>a.localeCompare(b))):v)).digest('hex');
+const sourceConfiguration=value=>{const {status,...configuration}=value;return configuration;};
+const sourceDigest=value=>createHash('sha256').update(JSON.stringify(sourceConfiguration(value),(_key,v)=>v && typeof v==='object' && !Array.isArray(v)?Object.fromEntries(Object.entries(v).sort(([a],[b])=>a.localeCompare(b))):v)).digest('hex');
 export const validRequestId = id => typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
 export function fileStore(directory) {
   async function ensure() {
@@ -49,7 +50,7 @@ export function createHecService({ targets, request, store, generateToken = () =
         await store.put(id, record);
       }
       if (source.disabled === true) {
-        const enabled = {...source,disabled:false};
+        const enabled = {...sourceConfiguration(source),disabled:false};
         record.enableDigest=sourceDigest(enabled);await store.put(id,record);
         // Cribl requires a full source representation; retain all existing settings/tokens.
         await request(sourcePath,'PATCH',enabled);

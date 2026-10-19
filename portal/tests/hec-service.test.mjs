@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHecService } from '../hec-service.mjs';
 function fixture() {
- const entries = new Map(), calls = []; let added = false, deployed = false, failDeploy = false, pending = false, healthy = true, ready = true, failCommit = false, emptyTokens = false, sourceDisabled = false;
+ const entries = new Map(), calls = []; let added = false, deployed = false, failDeploy = false, pending = false, healthy = true, ready = true, failCommit = false, emptyTokens = false, sourceDisabled = false, statusCount = 0;
  const service = createHecService({ targets: { default: { source: 'in_splunk_hec', endpoint: 'http://host:8088/services/collector' } }, store: { get: async id => entries.get(id), put: async (id,value) => entries.set(id,structuredClone(value)) }, generateToken: () => 'new-secret', wait: async()=>{}, verifyToken:async()=>ready,
   request: async (path,method='GET',body) => {
    calls.push({path,method,body});
@@ -10,7 +10,7 @@ function fixture() {
    if(path.endsWith('/version'))return {items:[{hash:'v2'}]};
    if(path.endsWith('/version/status'))return {items:[{files:pending?[{path:'groups/default/local/cribl/routes.yml'}]:[]}]};
    if(path.endsWith('/system/inputs/in_splunk_hec') && method==='PATCH'){sourceDisabled=body.disabled;return {items:[body]};}
-   if(path.endsWith('/system/inputs/in_splunk_hec'))return {items:[{type:'splunk_hec',disabled:sourceDisabled,port:8088,splunkHecAPI:'/services/collector',authTokens:[...(emptyTokens?[]:[{token:'old-secret'}]),...(added?[{token:'new-secret',description:'Portal request '+ID}]:[])]}]};
+   if(path.endsWith('/system/inputs/in_splunk_hec'))return {items:[{status:{counter:++statusCount},type:'splunk_hec',disabled:sourceDisabled,port:8088,splunkHecAPI:'/services/collector',authTokens:[...(emptyTokens?[]:[{token:'old-secret'}]),...(added?[{token:'new-secret',description:'Portal request '+ID}]:[])]}]};
    if(path.endsWith('/hectoken')) { added=true; return {items:[]}; }
    if(path.endsWith('/version/commit')){if(failCommit){failCommit=false;throw new Error('Commit response lost');}return {items:[{commit:'v2'}]};}
    if(path.endsWith('/deploy')){if(failDeploy){failDeploy=false;throw new Error('Deployment interrupted');}deployed=true;return {items:[]};}
@@ -99,7 +99,7 @@ test('announces a token after creation and before commit or deployment readiness
 test('enables only the mapped HEC source preserving settings and existing tokens',async()=>{
  const f=fixture();f.disableSource();await f.service.create('default',ID);
  const patch=f.calls.find(c=>c.method==='PATCH');assert.equal(patch.path,'/m/default/system/inputs/in_splunk_hec');
- assert.equal(patch.body.disabled,false);assert.equal(patch.body.port,8088);assert.deepEqual(patch.body.authTokens,[{token:'old-secret'}]);
+ assert.equal(patch.body.disabled,false);assert.equal(Object.hasOwn(patch.body,'status'),false);assert.equal(patch.body.port,8088);assert.deepEqual(patch.body.authTokens,[{token:'old-secret'}]);
  assert.equal(f.calls.filter(c=>c.method==='PATCH' && c.path.includes('/system/inputs/')).length,1);
 });
 test('unrelated pending changes block source enabling',async()=>{

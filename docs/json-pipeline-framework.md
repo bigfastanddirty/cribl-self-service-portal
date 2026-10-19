@@ -131,3 +131,19 @@ Validation uses mocked Cribl writes and local read-only template verification.
 No arbitrary demonstration BarometerIT or application was invented to create live
 resources. A real customer submission provides those values. Native RHEL and Cribl
 runtime processing verification remain outstanding.
+
+### Local live enable regression test (2026-10-19)
+
+The owner disabled the local HEC source and requested another test. The first live
+attempt enabled it but exposed a changing source-response `status` object, causing
+a false verification failure before token creation. Configuration comparisons and
+PATCH bodies now exclude this runtime telemetry. The failed local request journal
+was explicitly reconciled after inspecting the live state, and the same request
+was retried without creating a duplicate token.
+
+Verified local results: source enabled; the new ingestion token deployed and was
+accepted; `pl_Portal_HEC_Enable_Test_20261019` was cloned with development BarometerIT
+`DEV-HEC-ENABLE-TEST`; its enabled `true`/`devnull` Route is immediately before default.
+These clearly named development test pipeline/Route resources remain uncommitted
+and undeployed. No Worker restart or email delivery occurred. This is local Ubuntu
+verification, not validation of enterprise DNS/VIP behavior or native RHEL.
