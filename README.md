@@ -8,10 +8,11 @@ request summaries.
 ## Current capabilities
 
 - Read available Stream Worker Groups through the server-side Cribl adapter.
-- Collect HEC, API, or Other requests and validate required inputs.
+- List all configured Sources for the selected Worker Group, including disabled
+  Sources, and validate required inputs.
 - For explicitly mapped HEC targets, add an ingestion token, commit/deploy the
   scoped source change, display credentials immediately with pending status, and
-  verify readiness. API and Other provide summaries only.
+  verify readiness. All other Source selections provide summaries only.
 - Prepare summary notifications to the requester, CC zcars@allstate.com. Live email
   delivery remains paused until the internal relay is configured.
 - Package a transfer bundle for RHEL 8.10 with Node.js 22 and systemd.

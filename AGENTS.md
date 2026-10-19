@@ -433,3 +433,23 @@ invalidate the preview. Hidden samples remain last/deferred. Both HEC submission
 and notification endpoints require the ID before their respective side effects.
 The ID is portal request information, not new Cribl configuration or HEC metadata.
 Email delivery remains paused; no Cribl configuration changes are required.
+
+## Dynamic configured-source choices (2026-10-19)
+
+Replace the hardcoded HEC/API/Other choices with every configured Source instance
+in the selected Worker Group, including disabled Sources. Preserve the existing
+customer question label. Read only GET /api/v1/m/{group}/system/inputs with bounded
+pagination; this is not the catalog of all potentially supported Source types.
+Return only internal reference, friendly label, disabled state, and approved action.
+Never expose raw Source configuration, credentials, tokens, schemas, or expressions.
+Keep Worker Group exclusions and reject unlisted group references. Changing location
+clears the selected source and ignores stale responses. Failures/empty results show
+clear feedback without fixture fallback; disabled Sources remain selectable for a
+summary and must not be enabled by selection or submission.
+
+Only the enabled mapped Splunk HEC Source can use existing provisioning. HEC POSTs
+must reference that exact mapped Source; all other Sources produce summaries only.
+Summary notification validates current group/source references and derives labels
+server-side. No Source creation, enabling, deletion, or additional Cribl mutation is
+authorized. Live email delivery remains paused. Refresh or changing source/location
+discards browser credentials but does not revoke ingestion tokens.

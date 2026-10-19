@@ -10,7 +10,8 @@ export function initializeHec(group: HTMLSelectElement, method: HTMLSelectElemen
   let ready = false;
   let busy = false;
   function clearDialog() { find('hec-endpoint').textContent = ''; find('hec-token').textContent = ''; find('hec-copy-status').textContent = ''; }
-  function render() { section.hidden = method.value !== 'hec'; }
+  function isHec() { return method.selectedOptions[0]?.dataset.provisioning === 'hec'; }
+  function render() { section.hidden = !isHec(); }
   function reset() { requestId = undefined; credentials = undefined; ready = false; error.hidden = true; dialog.close(); clearDialog(); render(); }
   function showCredentials() {
     find('hec-endpoint').textContent = credentials!.endpoint;
@@ -29,7 +30,7 @@ export function initializeHec(group: HTMLSelectElement, method: HTMLSelectElemen
   });
   render();
   return { busy: () => busy, async submit() {
-    if (busy || !group.value || method.value !== 'hec') return;
+    if (busy || !group.value || !isHec()) return;
     if (credentials && ready) { showCredentials(); return requestId; }
     // getRandomValues also works on the development portal's LAN HTTP origin.
     if (!requestId) {
@@ -45,7 +46,7 @@ export function initializeHec(group: HTMLSelectElement, method: HTMLSelectElemen
       if (credentials) { showCredentials(); displayed = true; }
       const deadline = Date.now() + 10 * 60 * 1000;
       while (true) {
-        const response = await fetch('/api/hec', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ group: group.value, requestId, barometerId: find<HTMLInputElement>('barometer-id').value.trim() }), cache: 'no-store' });
+        const response = await fetch('/api/hec', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ group: group.value, requestId, source:method.value, barometerId: find<HTMLInputElement>('barometer-id').value.trim() }), cache: 'no-store' });
         if (response.status === 202) {
           const pending = await response.json();
           if (typeof pending.endpoint === 'string' && typeof pending.token === 'string' && pending.token) {

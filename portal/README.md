@@ -276,3 +276,24 @@ blank input, ASCII control characters, and values over 128 characters are reject
 No external ID lookup or business-specific ID format is assumed. The ID is shown in
 the summary and email, and required by both HEC and notification POST validation.
 It is not added to Cribl configuration. Editing invalidates preview; reset clears it.
+
+## Dynamic configured Sources
+
+The collection-method dropdown now queries `/source-catalog.json?group=<group>`
+after location selection. Its question label is unchanged. The server reads all
+configured sources (including disabled) from `GET /api/v1/m/{group}/system/inputs`
+in pages of 100, up to 10,000 before returning an explicit unavailable result.
+The API account needs read access to Source configuration in addition to Worker
+Groups. Only key, friendly label, disabled flag, and approved action reach the
+browser. No Source secrets/configuration are returned.
+
+Only an enabled Splunk HEC Source whose identifier matches the private target
+mapping receives provisioning behavior. HEC POST additionally carries that source
+reference and rejects mismatches. Disabled and other Sources remain selectable for
+a summary, with no enabling or configuration writes. The same choices are re-read
+when validating email summaries. No hardcoded HEC/API/Other fallback is used.
+Empty/failing Source lookups retain clear feedback and the original error image.
+Changing location clears its choices; stale lookup responses are ignored.
+
+This lists configured Source instances, not all theoretical Cribl types or Collector
+jobs. Friendly type-name aliases are formatting only, not a fixed options catalog.

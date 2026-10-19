@@ -70,3 +70,20 @@ test('returns an empty catalog when every Worker Group is excluded',async()=>{
  const client=createCriblClient({baseUrl:'http://localhost',initialToken:'existing',fetchImpl:async()=>Response.json({items:[{id:'test'},{id:'other',name:'NON-PROD'}]})});
  assert.deepEqual(await client.workerGroups(),[]);
 });
+test('lists every configured source including disabled entries, returning no configuration secrets',async()=>{
+ const client=createCriblClient({baseUrl:'http://localhost',initialToken:'existing',fetchImpl:async url=>{
+  assert.match(url,/\/m\/default\/system\/inputs\?offset=0&limit=100$/);
+  return Response.json({items:[{id:'in_hec',type:'splunk_hec',disabled:false,authTokens:[{token:'private-source-token'}]},{id:'in_syslog',type:'syslog',disabled:true,password:'private-password'}]});
+ }});
+ const sources=await client.sources('default');
+ assert.equal(sources.length,2);assert.equal(sources[1].disabled,true);
+ assert.doesNotMatch(JSON.stringify(sources),/private-source-token|private-password|authTokens/);
+});
+test('source pagination reads every page without exposing token fields',async()=>{
+ const offsets=[];
+ const client=createCriblClient({baseUrl:'http://localhost',initialToken:'existing',fetchImpl:async url=>{
+  const offset=Number(new URL(url).searchParams.get('offset'));offsets.push(offset);
+  return Response.json({items:Array.from({length:offset===0?100:1},(_,i)=>({id:'s'+(offset+i),type:'syslog',disabled:i%2===0,token:'secret'}))});
+ }});
+ const sources=await client.sources('default');assert.equal(sources.length,101);assert.deepEqual(offsets,[0,100]);assert.doesNotMatch(JSON.stringify(sources),/secret/);
+});

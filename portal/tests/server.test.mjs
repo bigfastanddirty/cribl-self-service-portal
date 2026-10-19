@@ -7,7 +7,7 @@ let upstream;
 let upstreamStatus = 200;
 let observed;
 before(async () => {
-  upstream = createServer((req, res) => { observed = { method: req.method, path: req.url, authorization: req.headers.authorization }; res.writeHead(upstreamStatus, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ items: [{ id: 'live-east', name: 'East operations', secret: 'must-not-forward' }] })); });
+  upstream = createServer((req, res) => { observed = { method: req.method, path: req.url, authorization: req.headers.authorization }; res.writeHead(upstreamStatus, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ items: req.url.includes('/system/inputs') ? [{id:'source-a',type:'syslog',disabled:true,authTokens:[{token:'must-not-forward'}]}] : [{ id: 'live-east', name: 'East operations', secret: 'must-not-forward' }] })); });
   await new Promise(resolve => upstream.listen(0, '127.0.0.1', resolve));
   child = spawn(process.execPath, ['server.mjs'], { env: { ...process.env, PORT: '4174', CRIBL_URL: `http://127.0.0.1:${upstream.address().port}`, CRIBL_API_TOKEN: 'test-token-only' }, stdio: ['ignore', 'pipe', 'pipe'] });
   await new Promise((resolve, reject) => { child.stdout.once('data', resolve); child.once('error', reject); child.once('exit', code => reject(new Error(`server exited ${code}`))); });
@@ -72,4 +72,16 @@ test('HEC submission requires BarometerIT before provisioning is attempted',asyn
   const payload=JSON.stringify({group:'default',requestId:'11111111-1111-4111-8111-111111111111',barometerId});
   assert.equal((await get('/api/hec','POST',headers,payload)).status,400);
  }
+});
+
+test('source catalog includes disabled sources and excludes all secret configuration',async()=>{
+ upstreamStatus=200;
+ const response=await get('/source-catalog.json?group=live-east');
+ assert.equal(response.status,200);
+ const source=JSON.parse(response.body).collectionMethods[0];
+ assert.equal(source.key,'source-a');assert.equal(source.disabled,true);assert.equal(source.provisioning,'summary');
+ assert.doesNotMatch(response.body,/must-not-forward|authTokens|authorization|test-token-only/);
+ assert.match(observed.path,/m\/live-east\/system\/inputs\?offset=0&limit=100/);
+ assert.equal((await get('/source-catalog.json?group=not-approved')).status,503);
+ assert.equal((await get('/source-catalog.json?group=bad%2Fgroup')).status,400);
 });

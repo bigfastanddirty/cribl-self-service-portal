@@ -10,15 +10,20 @@ let initialToken;
 if (process.env.CRIBL_TOKEN_FILE) { try { initialToken = (await readFile(process.env.CRIBL_TOKEN_FILE, 'utf8')).trim(); } catch {} }
 const cribl = createCriblClient({ baseUrl: process.env.CRIBL_URL || 'http://127.0.0.1:9000', initialToken: process.env.CRIBL_API_TOKEN || initialToken, credentials: () => privateCredentials(process.env.CRIBL_CREDENTIALS_FILE) });
 let hec;
+let hecTargets = {};
 if (process.env.HEC_TARGETS_FILE && process.env.HEC_STATE_DIR) {
-  const targets = JSON.parse(await readFile(process.env.HEC_TARGETS_FILE, 'utf8'));
+  const targets = hecTargets = JSON.parse(await readFile(process.env.HEC_TARGETS_FILE, 'utf8'));
   hec = createHecService({ targets, request: cribl.request, store: fileStore(process.env.HEC_STATE_DIR) });
+}
+async function sourceChoices(group) {
+  if (!(await cribl.workerGroups()).some(g => g.key === group)) throw new Error('Location unavailable');
+  return (await cribl.sources(group)).map(s => ({key:s.key,label:s.label,disabled:s.disabled,provisioning:s.type==='splunk_hec' && !s.disabled && hecTargets[group]?.source===s.key ? 'hec' : 'summary'}));
 }
 let notifications;
 if (process.env.SMTP_CONFIG_FILE && process.env.NOTIFICATION_STATE_DIR) {
   try {
     const mail = await loadMailTransport(process.env.SMTP_CONFIG_FILE);
-    notifications = createNotificationService({ ...mail, store: fileStore(process.env.NOTIFICATION_STATE_DIR), workerGroups: cribl.workerGroups, hecStore: process.env.HEC_STATE_DIR ? fileStore(process.env.HEC_STATE_DIR) : undefined });
+    notifications = createNotificationService({ ...mail, store: fileStore(process.env.NOTIFICATION_STATE_DIR), workerGroups: cribl.workerGroups, sources: sourceChoices, hecStore: process.env.HEC_STATE_DIR ? fileStore(process.env.HEC_STATE_DIR) : undefined });
   } catch { console.error('Summary email configuration unavailable'); }
 }
 const root = fileURLToPath(new URL('./dist/', import.meta.url));
@@ -60,7 +65,7 @@ const server = http.createServer(async (req, res) => {
       let data = '', bytes = 0;
       for await (const chunk of req) { bytes += chunk.length; if (bytes > 4096) throw new Error(); data += chunk.toString('utf8'); }
       input = JSON.parse(data);
-      if (!input || typeof input.group !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(input.group) || !validRequestId(input.requestId) || typeof input.barometerId !== 'string' || !input.barometerId.trim() || input.barometerId.trim().length > 128 || /[\x00-\x1f\x7f]/.test(input.barometerId) || Object.keys(input).some(key => !['group', 'requestId', 'barometerId'].includes(key))) throw new Error();
+      if (!input || typeof input.group !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(input.group) || !validRequestId(input.requestId) || input.source !== hecTargets[input.group]?.source || typeof input.source !== 'string' || typeof input.barometerId !== 'string' || !input.barometerId.trim() || input.barometerId.trim().length > 128 || /[\x00-\x1f\x7f]/.test(input.barometerId) || Object.keys(input).some(key => !['group', 'requestId', 'barometerId', 'source'].includes(key))) throw new Error();
     } catch { json(400, { message: 'Invalid credential request.' }); return; }
     if (!hec) { json(503, { message: 'HEC setup is unavailable for this location.' }); return; }
     let replied = false;
@@ -70,11 +75,21 @@ const server = http.createServer(async (req, res) => {
     return;
   }
   if (!['GET', 'HEAD'].includes(req.method)) { res.setHeader('Allow', 'GET, HEAD'); error(405); return; }
+  if (urlPath === '/source-catalog.json') {
+    const group = new URL(req.url, 'http://localhost').searchParams.get('group');
+    if (!group || !/^[a-zA-Z0-9_-]{1,128}$/.test(group)) { error(400); return; }
+    try {
+      const collectionMethods = await sourceChoices(group);
+      res.writeHead(200, { 'Content-Type':'application/json; charset=utf-8' });
+      res.end(req.method === 'HEAD' ? undefined : JSON.stringify({collectionMethods}));
+    } catch { error(503); }
+    return;
+  }
   if (urlPath === '/catalog.json') {
     try {
       const workerGroups = await cribl.workerGroups();
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(req.method === 'HEAD' ? undefined : JSON.stringify({ version: 1, provenance: 'Worker Groups from Cribl · Read-only lookup', workerGroups }));
+      res.end(req.method === 'HEAD' ? undefined : JSON.stringify({ version: 1, provenance: 'Worker Groups from Cribl · Read-only lookup', workerGroups, collectionMethods: [] }));
     } catch { error(503); }
     return;
   }

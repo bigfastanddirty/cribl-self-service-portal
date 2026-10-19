@@ -24,7 +24,7 @@ test('SMTP integration sends owner and requester the validated summary, once',as
    }
   });
  });
- const upstream=http.createServer((req,res)=>{res.setHeader('Content-Type','application/json');res.end(JSON.stringify({items:[{id:'default',name:'Default'}]}));});
+ const upstream=http.createServer((req,res)=>{res.setHeader('Content-Type','application/json');res.end(JSON.stringify({items:req.url.includes('/system/inputs')?[{id:'api',type:'http',name:'API',disabled:false}]:[{id:'default',name:'Default'}]}));});
  await new Promise(resolve=>smtp.listen(0,'127.0.0.1',resolve));await new Promise(resolve=>upstream.listen(0,'127.0.0.1',resolve));
  const temp=await mkdtemp(path.join(os.tmpdir(),'portal-mail-test-'));const config=path.join(temp,'smtp.json');
  await writeFile(config,JSON.stringify({host:'127.0.0.1',port:smtp.address().port,from:'portal@example.com',secure:false,requireTLS:false}),{mode:0o600});

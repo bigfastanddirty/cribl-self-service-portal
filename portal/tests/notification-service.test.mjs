@@ -5,7 +5,7 @@ const id='11111111-1111-4111-8111-111111111111';
 const input={requestId:id,email:'requester@example.com',barometerId:'BAR-12345',group:'default',method:'api',dailyVolume:{value:'10',unit:'GB'}};
 function fixture(){
  const records=new Map(), messages=[];
- return {messages,records,service:createNotificationService({from:'portal@example.com',store:{get:async id=>records.get(id),put:async(id,r)=>records.set(id,structuredClone(r))},workerGroups:async()=>[{key:'default',label:'Default'}],hecStore:{get:async()=>({group:'default',complete:true,token:'must-not-email'})},send:async message=>{messages.push(message);return {accepted:['zcars@allstate.com','requester@example.com'],rejected:[]};}})};
+ return {messages,records,service:createNotificationService({from:'portal@example.com',store:{get:async id=>records.get(id),put:async(id,r)=>records.set(id,structuredClone(r))},workerGroups:async()=>[{key:'default',label:'Default'}],sources:async()=>[{key:'hec',label:'HEC',provisioning:'hec'},{key:'api',label:'API',provisioning:'summary'}],hecStore:{get:async()=>({group:'default',complete:true,token:'must-not-email'})},send:async message=>{messages.push(message);return {accepted:['zcars@allstate.com','requester@example.com'],rejected:[]};}})};
 }
 test('validates one bounded email and prevents header injection',()=>{
  assert.equal(validEmail('requester+logs@example.com'),true);

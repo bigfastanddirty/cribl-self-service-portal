@@ -1,5 +1,4 @@
 import type { Catalog, CatalogEntry } from './domain';
-export const COLLECTION_METHODS: CatalogEntry[] = [{ key: 'hec', label: 'HEC' }, { key: 'api', label: 'API' }, { key: 'other', label: 'Other' }];
 function entries(data: unknown): data is CatalogEntry[] {
   if (!Array.isArray(data)) return false;
   const keys = new Set<string>();
@@ -12,5 +11,13 @@ export function parseCatalog(data: unknown): Catalog {
   if (!data || typeof data !== 'object') throw new Error('Invalid catalog');
   const candidate = data as Catalog;
   if (!Number.isInteger(candidate.version) || candidate.version < 1 || typeof candidate.provenance !== 'string' || !candidate.provenance.trim() || !entries(candidate.workerGroups)) throw new Error('Invalid catalog');
-  return { version: candidate.version, provenance: candidate.provenance, workerGroups: candidate.workerGroups, collectionMethods: COLLECTION_METHODS };
+  return { version: candidate.version, provenance: candidate.provenance, workerGroups: candidate.workerGroups, collectionMethods: parseSourceCatalog({collectionMethods:candidate.collectionMethods || []}) };
+}
+
+export function parseSourceCatalog(data: unknown): CatalogEntry[] {
+  if (!data || typeof data !== 'object' || !entries((data as {collectionMethods:unknown}).collectionMethods)) throw new Error('Invalid source catalog');
+  return (data as {collectionMethods:CatalogEntry[]}).collectionMethods.map(entry => {
+    if ((entry.disabled !== undefined && typeof entry.disabled !== 'boolean') || (entry.provisioning !== undefined && !['hec','summary'].includes(entry.provisioning)) || (entry.disabled && entry.provisioning === 'hec')) throw new Error('Invalid source catalog');
+    return {key:entry.key,label:entry.label,disabled:entry.disabled===true,provisioning:entry.provisioning || 'summary'};
+  });
 }

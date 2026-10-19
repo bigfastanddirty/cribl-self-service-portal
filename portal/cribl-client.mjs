@@ -39,7 +39,10 @@ export function createCriblClient({ baseUrl, credentials, initialToken, fetchImp
   }
   async function token() { return current && current.expires > now() ? current : login(); }
   async function request(path, method = 'GET', body) {
-    if (!/^\/(products\/stream\/workers\/restart|products\/stream\/groups(?:\/[a-zA-Z0-9_-]+\/deploy)?|master\/workers|m\/[a-zA-Z0-9_-]+\/(?:version(?:\/(?:status|commit))?|system\/inputs\/[a-zA-Z0-9_-]+(?:\/hectoken)?))$/.test(path)) throw new Error('Unsupported Cribl operation');
+    const route = path.split('?')[0];
+    if (/^\/m\/[a-zA-Z0-9_-]+\/system\/inputs$/.test(route) && method !== 'GET') throw new Error('Source discovery is read-only');
+    if (path.includes('?') && !(method === 'GET' && /^\/m\/[a-zA-Z0-9_-]+\/system\/inputs\?offset=\d{1,6}&limit=100$/.test(path))) throw new Error('Unsupported Cribl operation');
+    if (!/^\/(products\/stream\/workers\/restart|products\/stream\/groups(?:\/[a-zA-Z0-9_-]+\/deploy)?|master\/workers|m\/[a-zA-Z0-9_-]+\/(?:version(?:\/(?:status|commit))?|system\/inputs(?:\/[a-zA-Z0-9_-]+(?:\/hectoken)?)?))$/.test(route)) throw new Error('Unsupported Cribl operation');
     let used = await token();
     const send = auth => fetchImpl(new URL('/api/v1' + path, base).href, { method, headers: { Authorization: `Bearer ${auth.token}`, ...(body ? { 'Content-Type': 'application/json' } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}), signal: AbortSignal.timeout(10000), redirect: 'error' });
     let response = await send(used);
@@ -50,7 +53,27 @@ export function createCriblClient({ baseUrl, credentials, initialToken, fetchImp
     if (!response.ok) throw new Error('Cribl request failed');
     return response.json();
   }
-  return { request, async workerGroups() {
+  return { request, async sources(group) {
+    if (typeof group !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(group)) throw new Error('Sources unavailable');
+    const all = [], seen = new Set();
+    const labels = { splunk_hec:'Splunk HEC',syslog:'Syslog',http:'HTTP',http_raw:'HTTP Raw',tcp:'TCP',tcpjson:'TCP JSON',s3:'Amazon S3',kafka:'Kafka',open_telemetry:'OpenTelemetry',cribl_http:'Cribl HTTP',cribl_tcp:'Cribl TCP' };
+    for (let offset = 0; offset < 10000; offset += 100) {
+      const data = await request('/m/' + group + '/system/inputs?offset=' + offset + '&limit=100');
+      if (!Array.isArray(data.items)) throw new Error('Invalid source catalog');
+      for (const item of data.items) {
+        if (typeof item.id !== 'string' || !item.id || item.id.length > 256 || /[\x00-\x1f\x7f]/.test(item.id) || typeof item.type !== 'string' || !item.type || seen.has(item.id)) throw new Error('Invalid source catalog');
+        seen.add(item.id);
+        const label = typeof item.name === 'string' && item.name.trim() ? item.name.trim().slice(0,160) : (Object.hasOwn(labels,item.type) ? labels[item.type] : undefined) || item.type.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+        all.push({key:item.id,label,type:item.type,disabled:item.disabled === true});
+      }
+      if (data.items.length < 100) {
+        const counts = new Map();
+        for (const source of all) { const count=(counts.get(source.label)||0)+1; counts.set(source.label,count); source.label += (count>1 ? ' ('+count+')' : '') + (source.disabled?' — disabled':''); }
+        return all;
+      }
+    }
+    throw new Error('Source catalog exceeds supported size');
+  }, async workerGroups() {
     try {
       const data = await request('/products/stream/groups');
       if (!Array.isArray(data.items) || data.items.some(item => typeof item.id !== 'string' || !item.id.trim())) throw new Error();

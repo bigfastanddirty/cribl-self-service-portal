@@ -488,3 +488,24 @@ or existence check is currently defined. This validates presence and safe bounde
 text only; it does not certify that an ID exists in Barometer. Include it in the
 plain-language summary and summary email, and in notification identity. It is not
 translated into Cribl routing configuration, token descriptions, or source metadata.
+
+## Configured-source choices (2026-10-19)
+
+Keep the existing collection-method question wording. Its values now identify
+configured Source instances in the selected Worker Group, fetched from Cribl,
+including disabled instances. Internal key is the Source identifier; customers see
+a friendly source label and disabled marker. Multiple instances stay separate.
+The catalog does not represent unconfigured Source types or Collector jobs.
+
+The portal emits only key, label, disabled, and provisioning policy (HEC or summary).
+It does not return raw Source configuration. Groups remain filtered by the approved
+exclusions. Reference validation is scoped to the selected group; changes clear the
+previous choice, and stale asynchronous responses cannot restore old choices.
+An unavailable or empty catalog supplies no fabricated choices.
+
+Disabled instances can be selected for a summary. Selection does not enable a Source.
+Existing HEC provisioning applies only to the exact enabled Source in the private
+mapping. Other Source choices do not create or deploy configuration. Notifications
+resolve the current Source label from Cribl server-side rather than trusting browser
+text. Existing input validation, BarometerIT, upload deferral, and secret handling
+remain in force.

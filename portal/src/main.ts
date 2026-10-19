@@ -3,7 +3,7 @@ import { createSummarySender } from './summary';
 import { initializeHec } from './hec';
 import { classifyLog, type LogFinding } from './log-analysis';
 import { validateDraft, validateSample, type Catalog, type CatalogEntry, type Draft, type Errors } from './domain';
-import { parseCatalog } from './catalog';
+import { parseCatalog, parseSourceCatalog } from './catalog';
 
 function element<T extends HTMLElement>(id: string): T {
   const result = document.getElementById(id);
@@ -24,6 +24,7 @@ const override = element<HTMLSelectElement>('log-type-override');
 const previewButton = element<HTMLButtonElement>('preview-button');
 const hec = initializeHec(group, method, form);
 let catalog: Catalog | undefined;
+let sourceVersion = 0;
 let selectedFile: File | undefined;
 let finding: LogFinding | undefined;
 let analysisVersion = 0;
@@ -156,6 +157,7 @@ volume.addEventListener('input', invalidatePreview);
 override.addEventListener('change', invalidatePreview);
 volumeUnit.addEventListener('change', () => { volume.min = volumeUnit.value === 'TB' ? '0.001' : '1'; invalidatePreview(); });
 form.addEventListener('reset', () => {
+  resetSources();
   attemptedReview = false; email.value = ''; barometerId.value = ''; summarySender.reset();
   group.value = ''; method.value = ''; volume.value = ''; volumeUnit.value = 'GB'; volume.min = '1';
   clearSample(); showErrors({}); invalidatePreview();
@@ -188,11 +190,13 @@ form.addEventListener('submit', async event => {
   element('announcement').textContent = 'Your request summary is ready.';
   submitting = true;
   const controls = Array.from(form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLButtonElement>('input, select, button'));
+  controls.push(element<HTMLButtonElement>('retry-catalog'));
   const disabled = controls.map(control => control.disabled);
   controls.forEach(control => control.disabled = true);
   try {
-    const hecRequestId = method.value === 'hec' ? await hec.submit() : undefined;
-    if (method.value === 'hec' && !hecRequestId) return;
+    const provisionsHec = catalog.collectionMethods.find(e => e.key === method.value)?.provisioning === 'hec';
+    const hecRequestId = provisionsHec ? await hec.submit() : undefined;
+    if (provisionsHec && !hecRequestId) return;
     await summarySender.send({barometerId:barometerId.value.trim(),email:email.value.trim(),group:group.value,method:method.value,dailyVolume:{value:volume.value,unit:volumeUnit.value},...(hecRequestId ? {hecRequestId} : {})});
   } finally {
     submitting = false;
@@ -201,11 +205,43 @@ form.addEventListener('submit', async event => {
 });
 function populate(select: HTMLSelectElement, entries: CatalogEntry[], placeholder: string): void {
   select.replaceChildren(new Option(placeholder, ''));
-  for (const entry of entries) select.add(new Option(entry.label, entry.key));
+  for (const entry of entries) { const option = new Option(entry.label, entry.key); option.dataset.provisioning = entry.provisioning || 'summary'; select.add(option); }
   select.disabled = entries.length === 0;
 }
-element('retry-catalog').addEventListener('click', () => { void loadCatalog(); });
+function resetSources(): void {
+  sourceVersion++;
+  if (catalog) { catalog.collectionMethods = []; element('service-error').hidden = true; }
+  populate(method, [], 'Select a location first');
+  element('source-status').textContent = 'Choose a location to load its configured sources.';
+  method.dispatchEvent(new Event('change'));
+}
+group.addEventListener('change', () => { void loadSources(); });
+async function loadSources(): Promise<void> {
+  resetSources();
+  if (!catalog || !group.value) return;
+  const version = sourceVersion, selectedGroup = group.value;
+  populate(method, [], 'Loading sources…');
+  element('service-error').hidden = true;
+  element('source-status').textContent = 'Loading configured sources…';
+  try {
+    const response = await fetch('/source-catalog.json?group=' + encodeURIComponent(selectedGroup), {cache:'no-store'});
+    if (!response.ok) throw new Error('Sources unavailable');
+    const choices = parseSourceCatalog(await response.json());
+    if (version !== sourceVersion || group.value !== selectedGroup || !catalog) return;
+    catalog.collectionMethods = choices;
+    populate(method, choices, choices.length ? 'Select a collection method' : 'No sources configured');
+    element('source-status').textContent = choices.length ? 'All configured sources are shown, including disabled sources. Only approved HEC sources provide automatic setup; others provide a summary.' : 'No sources are configured in this location.';
+  } catch {
+    if (version !== sourceVersion || !catalog) return;
+    populate(method, [], 'Sources unavailable');
+    element('source-status').textContent = 'Sources could not be loaded. Use Try again above.';
+    element('catalog-failure').textContent = 'We couldn’t load sources for this location.';
+    element('service-error').hidden = false;
+  }
+}
+element('retry-catalog').addEventListener('click', () => { if (catalog && group.value) void loadSources(); else void loadCatalog(); });
 async function loadCatalog(): Promise<void> {
+  resetSources();
   const retry = element<HTMLButtonElement>('retry-catalog');
   retry.disabled = true;
   element('catalog-status').textContent = 'Loading Worker Groups…';
@@ -218,8 +254,8 @@ async function loadCatalog(): Promise<void> {
     catalog = parseCatalog(await response.json());
     element('service-error').hidden = true;
     populate(group, catalog.workerGroups, 'Select a location');
-    populate(method, catalog.collectionMethods, 'Select a collection method');
-    const available = catalog.workerGroups.length > 0 && catalog.collectionMethods.length > 0;
+    populate(method, [], 'Select a location first');
+    const available = catalog.workerGroups.length > 0;
     previewButton.disabled = !available;
     element('catalog-status').textContent = available ? catalog.provenance : 'No choices are available. Please check back Worker Groups are available in Cribl.';
   } catch {
