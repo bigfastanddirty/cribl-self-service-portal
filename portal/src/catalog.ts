@@ -19,5 +19,5 @@ export function parseSourceCatalog(data: unknown): CatalogEntry[] {
   return (data as {collectionMethods:CatalogEntry[]}).collectionMethods.map(entry => {
     if ((entry.disabled !== undefined && typeof entry.disabled !== 'boolean') || (entry.provisioning !== undefined && !['hec','summary'].includes(entry.provisioning))) throw new Error('Invalid source catalog');
     return {key:entry.key,label:entry.label,...(typeof entry.description === 'string' ? {description:entry.description.slice(0,600)} : {}),disabled:entry.disabled===true,provisioning:entry.provisioning || 'summary'};
-  });
+  }).filter(entry=>!entry.disabled);
 }

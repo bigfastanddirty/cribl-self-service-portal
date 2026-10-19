@@ -25,7 +25,7 @@ async function sourceChoices(group) {
   if (!(await cribl.workerGroups()).some(g => g.key === group)) throw new Error('Location unavailable');
   const sources=await cribl.sources(group);
   if(!Object.hasOwn(configuredHecTargets,group)) {
-    const candidates=sources.filter(s=>s.type==='splunk_hec');
+    const candidates=sources.filter(s=>s.type==='splunk_hec' && !s.disabled);
     let target;
     if(candidates.length===1 && /^[A-Za-z0-9_-]+$/.test(candidates[0].key)) {
       const source=(await cribl.request('/m/'+group+'/system/inputs/'+candidates[0].key)).items?.[0];

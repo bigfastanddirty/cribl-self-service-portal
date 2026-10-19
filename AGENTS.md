@@ -570,3 +570,13 @@ status object. Exclude top-level status from source PATCH bodies and enable-inte
 configuration digests; it is runtime telemetry, not source configuration. Preserve
 all actual configuration fields and existing tokens. A regression test changes
 status between every read. No Worker restart is authorized by this correction.
+
+## Enabled configured sources only (2026-10-19)
+
+The owner reverted automatic enabling and the full unconfigured type catalog.
+Only enabled configured Sources appear in the customer dropdown, retaining existing
+System*, Cribl*, and Journal exclusions. Descriptions still come from the versioned
+type catalog, but unconfigured type choices are not added. Filter on server and UI;
+reject disabled HEC during submission, never PATCH a Source to enable it. Discovery
+uses enabled HEC instances only. Existing Cribl source states are left unchanged;
+this direction does not authorize disabling previously enabled resources.

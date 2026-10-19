@@ -96,11 +96,8 @@ test('announces a token after creation and before commit or deployment readiness
  assert.equal(announced,true);
 });
 
-test('enables only the mapped HEC source preserving settings and existing tokens',async()=>{
- const f=fixture();f.disableSource();await f.service.create('default',ID);
- const patch=f.calls.find(c=>c.method==='PATCH');assert.equal(patch.path,'/m/default/system/inputs/in_splunk_hec');
- assert.equal(patch.body.disabled,false);assert.equal(Object.hasOwn(patch.body,'status'),false);assert.equal(patch.body.port,8088);assert.deepEqual(patch.body.authTokens,[{token:'old-secret'}]);
- assert.equal(f.calls.filter(c=>c.method==='PATCH' && c.path.includes('/system/inputs/')).length,1);
+test('rejects disabled HEC without enabling or creating tokens',async()=>{
+ const f=fixture();f.disableSource();await assert.rejects(f.service.create('default',ID));assert.ok(!f.calls.some(c=>c.method!=='GET'));
 });
 test('unrelated pending changes block source enabling',async()=>{
  const f=fixture();f.disableSource();f.setPending();await assert.rejects(f.service.create('default',ID));assert.ok(!f.calls.some(c=>c.method==='PATCH'));

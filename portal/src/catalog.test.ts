@@ -7,7 +7,7 @@ it('rejects malformed group entries and duplicate keys',()=>{
  expect(()=>parseCatalog({...fixture,workerGroups:[fixture.workerGroups[0],fixture.workerGroups[0]]})).toThrow();
 });
 it('retains all sources including disabled entries and strips extra metadata',()=>{
- expect(parseSourceCatalog({collectionMethods:[{key:'a',label:'Syslog',disabled:true,password:'hidden'}]})).toEqual([{key:'a',label:'Syslog',disabled:true,provisioning:'summary'}]);
+ expect(parseSourceCatalog({collectionMethods:[{key:'a',label:'Syslog',disabled:true,password:'hidden'}]})).toEqual([]);
 });
 it('rejects duplicates, malformed sources and disabled provisioning',()=>{
  for(const collectionMethods of [[{key:'a',label:'A'},{key:'a',label:'A'}],[{key:'a'}]])expect(()=>parseSourceCatalog({collectionMethods})).toThrow();

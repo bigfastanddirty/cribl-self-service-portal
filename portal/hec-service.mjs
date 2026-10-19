@@ -1,8 +1,6 @@
-import { randomBytes, createHash } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { mkdir, readFile, writeFile, rename, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
-const sourceConfiguration=value=>{const {status,...configuration}=value;return configuration;};
-const sourceDigest=value=>createHash('sha256').update(JSON.stringify(sourceConfiguration(value),(_key,v)=>v && typeof v==='object' && !Array.isArray(v)?Object.fromEntries(Object.entries(v).sort(([a],[b])=>a.localeCompare(b))):v)).digest('hex');
 export const validRequestId = id => typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
 export function fileStore(directory) {
   async function ensure() {
@@ -38,24 +36,16 @@ export function createHecService({ targets, request, store, generateToken = () =
       if (!Array.isArray(workers) || !workers.some(w => w.group === group && !w.disconnected && w.status === 'healthy')) throw new Error('No healthy Worker is available for this location');
       const sourcePath = prefix + '/system/inputs/' + target.source;
       let source = (await request(sourcePath)).items?.[0];
-      if (!source || source.type !== 'splunk_hec' || !Array.isArray(source.authTokens)) throw new Error('HEC is not enabled for this location');
+      if (!source || source.type !== 'splunk_hec' || source.disabled || !Array.isArray(source.authTokens)) throw new Error('HEC is not enabled for this location');
       const endpoint = new URL(target.endpoint);
       if (!['http:', 'https:'].includes(endpoint.protocol) || endpoint.username || endpoint.password || endpoint.search || endpoint.hash || endpoint.pathname !== source.splunkHecAPI || Number(endpoint.port || (endpoint.protocol === 'https:' ? 443 : 80)) !== source.port || (endpoint.protocol === 'https:') !== (source.tls?.disabled === false)) throw new Error('HEC endpoint mapping does not match its source');
       const status = (await request(prefix + '/version/status')).items?.[0];
       const inputFile = 'groups/' + group + '/local/cribl/inputs.yml';
       const alreadyAdded = source.authTokens.some(t => t.description === 'Portal request ' + id);
-      if (!status || !Array.isArray(status.files) || status.files.some(f => f.path !== inputFile) || (status.files.length && !alreadyAdded && !(record?.enableDigest && source.disabled===false && sourceDigest(source)===record.enableDigest))) throw new Error('Pending configuration changes require administrator review');
+      if (!status || !Array.isArray(status.files) || status.files.some(f => f.path !== inputFile) || (status.files.length && !alreadyAdded)) throw new Error('Pending configuration changes require administrator review');
       if (!record) {
         record = { group, token: generateToken(), endpoint: target.endpoint };
         await store.put(id, record);
-      }
-      if (source.disabled === true) {
-        const enabled = {...sourceConfiguration(source),disabled:false};
-        record.enableDigest=sourceDigest(enabled);await store.put(id,record);
-        // Cribl requires a full source representation; retain all existing settings/tokens.
-        await request(sourcePath,'PATCH',enabled);
-        source=(await request(sourcePath)).items?.[0];
-        if(!source || sourceDigest(source)!==record.enableDigest)throw new Error('HEC source enabling could not be verified');
       }
       if (!alreadyAdded) await request(sourcePath + '/hectoken', 'POST', { token: record.token, enabled: true, description: 'Portal request ' + id });
       if (!record.creationAnnounced && !record.version && onCreated) {

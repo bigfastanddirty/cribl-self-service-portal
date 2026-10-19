@@ -356,3 +356,11 @@ require administrator mapping. No listener configuration, tokens or credentials
 are exposed in source-catalog responses. The hostname is a configured VIP assumption,
 not discovered network topology; verify DNS, routing and matching external port/TLS
 settings from the deployment host.
+
+### Current source selection policy
+
+Only enabled configured sources are offered. Disabled and unconfigured types are
+hidden, along with the existing internal/journal exclusions. Type descriptions
+remain available. Automatic enabling was removed; a source disabled after loading
+the page is rejected on submission. Automatic HEC discovery considers enabled
+instances only. No existing Cribl source state is changed by this policy update.
