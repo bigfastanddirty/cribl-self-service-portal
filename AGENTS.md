@@ -422,9 +422,9 @@ the catalog; do not modify groups in Cribl. Keep existing unavailable-choice fee
 if all groups are excluded. This is a choice-display rule, not a replacement for
 production authorization controls.
 
-## Required BarometerID (2026-10-19)
+## Required BarometerIT (2026-10-19)
 
-Add a required BarometerID text field immediately after requester email. Reject
+Add a required BarometerIT text field immediately after requester email. Reject
 blank/whitespace-only values, ASCII control characters, and values exceeding 128
 characters; trim outer whitespace. No organization-specific ID pattern or external
 Barometer lookup is defined. Include the ID in the request summary and summary

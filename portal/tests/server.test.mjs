@@ -66,7 +66,7 @@ test('summary delivery requires same-origin bounded JSON and configured SMTP',as
  assert.equal(response.status,503);assert.equal(JSON.parse(response.body).code,'EMAIL_UNAVAILABLE');
 });
 
-test('HEC submission requires BarometerID before provisioning is attempted',async()=>{
+test('HEC submission requires BarometerIT before provisioning is attempted',async()=>{
  const headers={Origin:'http://127.0.0.1:4174','Content-Type':'application/json'};
  for(const barometerId of [undefined,'','   ','x'.repeat(129),'a\nb']){
   const payload=JSON.stringify({group:'default',requestId:'11111111-1111-4111-8111-111111111111',barometerId});

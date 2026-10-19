@@ -27,7 +27,7 @@ export function createNotificationService({from,store,workerGroups,hecStore,send
    const message={from,to:input.email,cc:'zcars@allstate.com',replyTo:input.email,
     subject:'Cribl Self Service — logging request',
     messageId:'<'+input.requestId+'@cribl-self-service.local>',
-    text:['Cribl Self Service — logging request','', 'Requester: '+input.email,'BarometerID: '+input.barometerId.trim(),'Data location: '+location.label,'Collection method: '+method,'Expected daily volume: '+Number(volume.value)+' '+volume.unit+' per day','',input.method==='hec'?'HEC setup completed. Credentials were displayed privately in the portal.':'Request summary only. No Cribl configuration was changed.','No log samples or credentials are included in this email.','Request reference: '+input.requestId].join('\n')};
+    text:['Cribl Self Service — logging request','', 'Requester: '+input.email,'BarometerIT: '+input.barometerId.trim(),'Data location: '+location.label,'Collection method: '+method,'Expected daily volume: '+Number(volume.value)+' '+volume.unit+' per day','',input.method==='hec'?'HEC setup completed. Credentials were displayed privately in the portal.':'Request summary only. No Cribl configuration was changed.','No log samples or credentials are included in this email.','Request reference: '+input.requestId].join('\n')};
    await store.put(input.requestId,{digest,status:'sending'});
    let result;
    try{result=await send(message);}catch(error){

@@ -479,9 +479,9 @@ not reopen a popup the customer already closed. Failures retain the token and
 show deployment unconfirmed. Summary emails still require HEC completion; live
 email setup remains paused. No Worker restarts are enabled.
 
-## BarometerID (2026-10-19)
+## BarometerIT (2026-10-19)
 
-Customer intent now includes required barometerId, presented as BarometerID after
+Customer intent now includes required barometerId, presented as BarometerIT after
 email and before data location. It is trimmed text of 1–128 characters, excluding
 ASCII control characters. No approved business-specific format, ownership lookup,
 or existence check is currently defined. This validates presence and safe bounded

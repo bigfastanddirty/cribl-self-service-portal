@@ -121,7 +121,7 @@ test('shows a newly created token while deployment is pending and updates readin
  await expect.poll(()=>calls,{timeout:10000}).toBe(2);finish();
  await expect(page.locator('#hec-dialog-status')).toContainText('ready to use');
 });
-test('BarometerID is required, included in the summary, and cleared on reset',async({page})=>{
+test('BarometerIT is required, included in the summary, and cleared on reset',async({page})=>{
  let posts=0;await page.route('**/api/summary',r=>{posts++;expect(r.request().postDataJSON().barometerId).toBe('BAR-12345');return r.fulfill({json:{status:'sent'}});});
  await page.goto('/');await complete(page,'api');await page.locator('#barometer-id').fill('   ');
  await page.getByRole('button',{name:'Submit request'}).click();await expect(page.locator('#barometerId-error')).not.toBeEmpty();expect(posts).toBe(0);

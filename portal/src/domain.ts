@@ -20,7 +20,7 @@ export function validateVolume(volume: Draft['dailyVolume']): string | undefined
 }
 export function validateDraft(draft: Draft, catalog: Catalog, requireSample = true): Errors {
   const errors: Errors = {};
-  if (!draft.barometerId || !draft.barometerId.trim() || draft.barometerId.trim().length > 128 || /[\x00-\x1f\x7f]/.test(draft.barometerId)) errors.barometerId = 'Enter a BarometerID (up to 128 characters).';
+  if (!draft.barometerId || !draft.barometerId.trim() || draft.barometerId.trim().length > 128 || /[\x00-\x1f\x7f]/.test(draft.barometerId)) errors.barometerId = 'Enter a BarometerIT (up to 128 characters).';
   if (!draft.email || !/^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$/.test(draft.email) || draft.email.length > 254 || draft.email.split('@')[0].length > 64 || draft.email.startsWith('.') || draft.email.includes('..') || draft.email.includes('.@')) errors.email = 'Enter a valid email address.';
   if (!catalog.workerGroups.some(e => e.key === draft.group)) errors.group = 'Choose a data location from the available options.';
   if (requireSample && !draft.sample) errors.sample = 'Choose a log sample to include in your request.';

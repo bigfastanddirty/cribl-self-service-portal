@@ -34,7 +34,7 @@ describe('requester email',()=>{
   expect(validateDraft({...base,barometerId:'BAR-12345',email:'requester@example.com'},catalog)).toEqual({});
  });
 });
-describe('BarometerID',()=>{
+describe('BarometerIT',()=>{
  it('requires nonblank bounded text without prescribing an ID format',()=>{
   const base={email:'requester@example.com',group:'group',method:'method',dailyVolume:{value:'1',unit:'GB'}};
   for(const barometerId of [undefined,'','   ','x'.repeat(129),'a\nb'])expect(validateDraft({...base,barometerId},catalog,false).barometerId).toBeTruthy();
