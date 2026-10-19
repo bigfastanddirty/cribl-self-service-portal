@@ -57,3 +57,16 @@ test('failed login backs off instead of authenticating for every request', async
   for (let i = 0; i < 3; i++) await assert.rejects(client.workerGroups(), /Worker Groups unavailable/);
   assert.equal(logins, 1);
 });
+test('omits groups with test, non-prod, or npd anywhere in ID or name, ignoring case',async()=>{
+ const client=createCriblClient({baseUrl:'http://localhost',initialToken:'existing',fetchImpl:async()=>Response.json({items:[
+  {id:'default',name:'Default'}, {id:'prod-east',name:'Production East'},
+  {id:'payments-TEST',name:'Payments'}, {id:'group-a',name:'Payments Non-Prod'},
+  {id:'npd-east',name:'East'}, {id:'group-b',name:'PreTESTsuffix'},
+  {id:'group-c',name:'Shared NPD'}, {id:'non-prod-west',name:'West'}
+ ]})});
+ assert.deepEqual(await client.workerGroups(),[{key:'default',label:'Default'},{key:'prod-east',label:'Production East'}]);
+});
+test('returns an empty catalog when every Worker Group is excluded',async()=>{
+ const client=createCriblClient({baseUrl:'http://localhost',initialToken:'existing',fetchImpl:async()=>Response.json({items:[{id:'test'},{id:'other',name:'NON-PROD'}]})});
+ assert.deepEqual(await client.workerGroups(),[]);
+});

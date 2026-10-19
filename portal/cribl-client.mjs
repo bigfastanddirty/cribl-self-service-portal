@@ -54,7 +54,7 @@ export function createCriblClient({ baseUrl, credentials, initialToken, fetchImp
     try {
       const data = await request('/products/stream/groups');
       if (!Array.isArray(data.items) || data.items.some(item => typeof item.id !== 'string' || !item.id.trim())) throw new Error();
-      return data.items.map(item => ({ key: item.id, label: typeof item.name === 'string' && item.name.trim() ? item.name : item.id === 'default' ? 'Default' : item.id }));
+      return data.items.filter(item => !/test|non-prod|npd/i.test(item.id) && !(typeof item.name === 'string' && /test|non-prod|npd/i.test(item.name))).map(item => ({ key: item.id, label: typeof item.name === 'string' && item.name.trim() ? item.name : item.id === 'default' ? 'Default' : item.id }));
     } catch { throw new Error('Worker Groups unavailable'); }
   } };
 }

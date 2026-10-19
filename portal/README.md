@@ -253,3 +253,18 @@ uses an explicit allowlist; private VM settings and journals are excluded. The
 installer targets RHEL 8.10 and Node.js 22, creates a dedicated systemd service,
 and leaves it stopped until configured. No target npm/build step is needed.
 See `../deployment/rhel8/REQUIREMENTS.md` and `INSTALL.md` for deployment limitations.
+
+## Worker Group dropdown exclusions
+
+Worker Group IDs and names containing `test`, `non-prod`, or `npd` are excluded
+case-insensitively by the server catalog adapter. No Cribl groups are modified. An
+empty result keeps submission unavailable. This is display filtering, not an access
+control boundary. To apply only this backend change to an existing RHEL installation,
+from an updated Git clone run (when no provisioning operation is pending):
+
+```bash
+sudo install -o root -g root -m 644 portal/cribl-client.mjs /opt/cribl-self-service/cribl-client.mjs
+sudo systemctl restart cribl-self-service
+```
+
+The fresh-install script deliberately does not overwrite an existing installation.

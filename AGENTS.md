@@ -413,3 +413,11 @@ Public dist directories must be mode 755 and public asset files mode 644 in bund
 and installed copies. Preserve original image contents; normalize metadata only.
 Earlier owner-only image permissions caused HTTP 500 under the dedicated service
 account. Apply this policy only to static assets, never private configuration/state.
+
+## Worker Group choice exclusions (2026-10-19)
+
+Exclude Worker Groups whose identifier or descriptive name contains test, non-prod,
+or npd, using case-insensitive substring matching. Filter server-side before returning
+the catalog; do not modify groups in Cribl. Keep existing unavailable-choice feedback
+if all groups are excluded. This is a choice-display rule, not a replacement for
+production authorization controls.
