@@ -42,12 +42,13 @@ export function createHecService({ targets, request, store, generateToken = () =
       const status = (await request(prefix + '/version/status')).items?.[0];
       const inputFile = 'groups/' + group + '/local/cribl/inputs.yml';
       const alreadyAdded = source.authTokens.some(t => t.description === 'Portal request ' + id);
-      if (!status || !Array.isArray(status.files) || status.files.some(f => f.path !== inputFile) || (status.files.length && !alreadyAdded)) throw new Error('Pending configuration changes require administrator review');
+      if (!status || !Array.isArray(status.files) || (!(record?.version && alreadyAdded) && (status.files.some(f => f.path !== inputFile) || (status.files.length && !alreadyAdded)))) throw new Error('Pending configuration changes require administrator review');
       if (!record) {
         record = { group, token: generateToken(), endpoint: target.endpoint };
         await store.put(id, record);
       }
       if (!alreadyAdded) await request(sourcePath + '/hectoken', 'POST', { token: record.token, enabled: true, description: 'Portal request ' + id });
+      record.tokenCreated=true;await store.put(id,record);
       if (!record.creationAnnounced && !record.version && onCreated) {
         record.creationAnnounced = true; await store.put(id, record);
         onCreated({ endpoint: record.endpoint, token: record.token });

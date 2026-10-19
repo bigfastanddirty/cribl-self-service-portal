@@ -147,3 +147,14 @@ accepted; `pl_Portal_HEC_Enable_Test_20261019` was cloned with development Barom
 These clearly named development test pipeline/Route resources remain uncommitted
 and undeployed. No Worker restart or email delivery occurred. This is local Ubuntu
 verification, not validation of enterprise DNS/VIP behavior or native RHEL.
+
+### Early processing creation (2026-10-19)
+
+Pipeline and Route creation now begins upon confirmed token creation, including the
+first HTTP 202 response with credentials. It does not wait for HEC readiness. The
+private HEC journal records tokenCreated separately; the processing endpoint accepts
+this confirmation (or compatible prior confirmed states), rather than requiring
+complete readiness. Pending responses reuse the same processing request. HEC checks
+continue with pending messaging. A readiness retry with an already committed,
+existing token tolerates pending pipeline/Route drafts without committing them.
+Processing resources still remain uncommitted and undeployed.

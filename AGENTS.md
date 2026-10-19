@@ -580,3 +580,14 @@ type catalog, but unconfigured type choices are not added. Filter on server and 
 reject disabled HEC during submission, never PATCH a Source to enable it. Discovery
 uses enabled HEC instances only. Existing Cribl source states are left unchanged;
 this direction does not authorize disabling previously enabled resources.
+
+## Processing creation without HEC readiness wait (2026-10-19)
+
+The owner authorized creating the application pipeline/Route as soon as Cribl
+confirms token creation, including HTTP 202, without waiting for HEC deployment
+or token acceptance. Persist confirmed token creation separately from readiness;
+validate it server-side before processing writes. Repeated pending responses must
+reuse processing state rather than duplicate writes. Continue readiness checks and
+keep pending/not-ready messaging. Existing processing commits/deployments remain
+unauthorized. Readiness retries after a recorded token commit may tolerate pending
+processing drafts without committing them or creating a new token.

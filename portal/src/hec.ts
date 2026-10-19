@@ -1,5 +1,5 @@
 import { diagnosticFetch } from './diagnostics';
-export function initializeHec(group: HTMLSelectElement, method: HTMLSelectElement, form: HTMLFormElement): { submit: () => Promise<string | undefined>; busy: () => boolean } {
+export function initializeHec(group: HTMLSelectElement, method: HTMLSelectElement, form: HTMLFormElement): { submit: (onTokenCreated?: (id:string)=>Promise<void>) => Promise<string | undefined>; busy: () => boolean } {
   const find = <T extends HTMLElement>(id: string) => document.getElementById(id)! as T;
   const section = find('hec-action');
   const error = find('hec-error');
@@ -30,9 +30,9 @@ export function initializeHec(group: HTMLSelectElement, method: HTMLSelectElemen
     catch { find('hec-copy-status').textContent = 'Select the token text and copy it manually.'; }
   });
   render();
-  return { busy: () => busy, async submit() {
+  return { busy: () => busy, async submit(onTokenCreated?: (id:string)=>Promise<void>) {
     if (busy || !group.value || !isHec()) return;
-    if (credentials && ready) { showCredentials(); return requestId; }
+    if (credentials && ready) { showCredentials(); if(requestId)await onTokenCreated?.(requestId);return requestId; }
     // getRandomValues also works on the development portal's LAN HTTP origin.
     if (!requestId) {
       const bytes = crypto.getRandomValues(new Uint8Array(16)); bytes[6] = (bytes[6] & 15) | 64; bytes[8] = (bytes[8] & 63) | 128;
@@ -53,6 +53,7 @@ export function initializeHec(group: HTMLSelectElement, method: HTMLSelectElemen
           if (typeof pending.endpoint === 'string' && typeof pending.token === 'string' && pending.token) {
             credentials = { endpoint: pending.endpoint, token: pending.token };
             if (!displayed) { showCredentials(); displayed = true; }
+            await onTokenCreated?.(requestId!);
           }
           if (Date.now() >= deadline) throw new Error();
           await new Promise(resolve => setTimeout(resolve, 5000));
@@ -62,6 +63,7 @@ export function initializeHec(group: HTMLSelectElement, method: HTMLSelectElemen
         const data = await response.json();
         if (typeof data.endpoint !== 'string' || typeof data.token !== 'string' || !data.token) throw new Error();
         credentials = { endpoint: data.endpoint, token: data.token }; ready = true;
+        await onTokenCreated?.(requestId!);
         if (!displayed || dialog.open) showCredentials();
         find('hec-progress').textContent = 'Your connection is ready.';
         return requestId;

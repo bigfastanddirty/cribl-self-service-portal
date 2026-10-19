@@ -210,3 +210,13 @@ test('disabled mapped HEC is hidden and cannot start setup',async({page})=>{
  await page.route('**/api/hec',r=>{posts++;return r.fulfill({status:500});});
  await page.goto('/');await page.locator('#worker-group').selectOption('default');await expect(page.locator('#collection-method')).toBeDisabled();expect(posts).toBe(0);
 });
+test('pipeline and route start on token creation while HEC readiness is pending',async({page})=>{
+ let hecCalls=0,processingCalls=0;
+ await page.route('**/api/hec',r=>{hecCalls++;return r.fulfill({status:hecCalls===1?202:200,json:{endpoint:'http://example.com',token:'test-only',status:'pending'}});});
+ await page.route('**/api/json-setup',r=>{processingCalls++;return r.fulfill({json:{status:'created',deployed:false}});});
+ await page.goto('/');await complete(page);await page.getByRole('button',{name:'Submit request'}).click();
+ await expect(page.locator('#processing-status')).toContainText('not committed or deployed');
+ expect(hecCalls).toBe(1);expect(processingCalls).toBe(1);
+ await expect(page.locator('#hec-dialog-status')).toContainText('Deployment is pending');
+ await expect(page.locator('#hec-dialog-status')).toContainText('ready to use',{timeout:10000});expect(processingCalls).toBe(1);
+});

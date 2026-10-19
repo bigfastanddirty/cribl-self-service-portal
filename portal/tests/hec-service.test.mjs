@@ -102,3 +102,9 @@ test('rejects disabled HEC without enabling or creating tokens',async()=>{
 test('unrelated pending changes block source enabling',async()=>{
  const f=fixture();f.disableSource();f.setPending();await assert.rejects(f.service.create('default',ID));assert.ok(!f.calls.some(c=>c.method==='PATCH'));
 });
+test('readiness retry tolerates processing drafts after the token commit without committing them',async()=>{
+ const f=fixture();f.setReady(false);await assert.rejects(f.service.create('default',ID),{code:'HEC_PENDING'});
+ const commits=f.calls.filter(c=>c.path.endsWith('/version/commit')).length;
+ f.setPending();f.setReady(true);const result=await f.service.create('default',ID);assert.equal(result.token,'new-secret');
+ assert.equal(f.calls.filter(c=>c.path.endsWith('/version/commit')).length,commits);
+});

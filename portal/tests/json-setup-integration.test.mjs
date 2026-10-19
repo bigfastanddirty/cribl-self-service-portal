@@ -1,11 +1,11 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';
 import {createServer} from 'node:http';import {spawn} from 'node:child_process';
 import {mkdtemp,mkdir,writeFile,rm} from 'node:fs/promises';import os from 'node:os';import path from 'node:path';
-test('HTTP setup validates completed HEC and writes only pipeline and routing drafts',async()=>{
+test('HTTP setup accepts confirmed token creation before HEC readiness and writes only pipeline and routing drafts',async()=>{
  const dir=await mkdtemp(path.join(os.tmpdir(),'json-setup-test-'));
  const hecId='22222222-2222-4222-8222-222222222222',requestId='11111111-1111-4111-8111-111111111111';
  await mkdir(path.join(dir,'hec'),{mode:0o700});
- await writeFile(path.join(dir,'hec',hecId+'.json'),JSON.stringify({group:'default',complete:true}),{mode:0o600});
+ await writeFile(path.join(dir,'hec',hecId+'.json'),JSON.stringify({group:'default',complete:false,tokenCreated:true}),{mode:0o600});
  await writeFile(path.join(dir,'targets.json'),JSON.stringify({}),{mode:0o600});
  const pipelines=new Map([['pl_json',{id:'pl_json',conf:{functions:[{id:'eval',conf:{add:[{name:'BarometerIT',value:'"template"'}]}}]}}]]);
  let table={id:'default',routes:[{id:'default',name:'default',filter:'true',final:true,output:'default',pipeline:'main'}]};const writes=[];
@@ -29,6 +29,8 @@ test('HTTP setup validates completed HEC and writes only pipeline and routing dr
   const send=data=>fetch('http://127.0.0.1:4181/api/json-setup',{method:'POST',headers:{origin:'http://127.0.0.1:4181','content-type':'application/json'},body:JSON.stringify(data)});
   assert.equal((await send({...payload,source:'not-approved'})).status,400);assert.equal(writes.length,0);
   const catalog=await fetch('http://127.0.0.1:4181/source-catalog.json?group=default');const catalogText=await catalog.text();assert.equal(JSON.parse(catalogText).collectionMethods.find(s=>s.key==='in_hec').provisioning,'hec');assert.doesNotMatch(catalogText,/not-for-browser|authTokens|splunkHecAPI/);
+  await writeFile(path.join(dir,'hec',hecId+'.json'),JSON.stringify({group:'default',complete:false}),{mode:0o600});assert.equal((await send(payload)).status,400);assert.equal(writes.length,0);
+  await writeFile(path.join(dir,'hec',hecId+'.json'),JSON.stringify({group:'default',complete:false,tokenCreated:true}),{mode:0o600});
   const response=await send(payload);assert.equal(response.status,200);assert.equal((await response.json()).deployed,false);
   assert.deepEqual(writes,[['POST','/m/default/pipelines'],['PATCH','/m/default/routes/default']]);
   assert.equal(table.routes[0].name,'Akamai Audit');assert.equal(table.routes[1].id,'default');

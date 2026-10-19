@@ -79,7 +79,7 @@ const server = http.createServer(async (req, res) => {
     try {
       const selected=(await sourceChoices(input.group)).find(s=>s.key===input.source);
       const hecRecord=await fileStore(process.env.HEC_STATE_DIR).get(input.hecRequestId);
-      if(selected?.provisioning!=='hec' || !hecRecord?.complete || hecRecord.group!==input.group){json(400,{message:'An approved, completed HEC setup is required.'});return;}
+      if(selected?.provisioning!=='hec' || !(hecRecord?.tokenCreated || hecRecord?.complete || hecRecord?.creationAnnounced) || hecRecord.group!==input.group){json(400,{message:'An approved, created HEC token is required.'});return;}
       json(200,await jsonSetup.create(input));
     } catch (failure) {diagnostic(diagnosticCode(failure));json(503,{message:'Pipeline/route setup could not be confirmed. Retry the same request or contact your administrator. Configuration may be partially created; nothing was committed or deployed.'});}
     return;

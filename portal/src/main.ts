@@ -206,9 +206,14 @@ form.addEventListener('submit', async event => {
   try {
     const provisionsHec = catalog.collectionMethods.find(e => e.key === method.value)?.provisioning === 'hec';
     recordDiagnostic('Workflow',provisionsHec?'SOURCE_HEC_SETUP':catalog.collectionMethods.find(e=>e.key===method.value)?.disabled?'SOURCE_DISABLED':'SOURCE_SUMMARY_ONLY');
-    const hecRequestId = provisionsHec ? await hec.submit() : undefined;
+    let processingStarted=false,processingOk=false;
+    const startProcessing=async(hecRequestId:string)=>{
+      if(processingStarted)return;processingStarted=true;
+      processingOk=await processingSender.send({applicationName:applicationName.value.trim(),barometerId:barometerId.value.trim(),email:email.value.trim(),group:group.value,source:method.value,dailyVolume:{value:volume.value,unit:volumeUnit.value},hecRequestId});
+    };
+    const hecRequestId = provisionsHec ? await hec.submit(startProcessing) : undefined;
     if (provisionsHec && !hecRequestId) return;
-    if (hecRequestId && !await processingSender.send({applicationName:applicationName.value.trim(),barometerId:barometerId.value.trim(),email:email.value.trim(),group:group.value,source:method.value,dailyVolume:{value:volume.value,unit:volumeUnit.value},hecRequestId})) return;
+    if(hecRequestId){await startProcessing(hecRequestId);if(!processingOk)return;}
     await summarySender.send({applicationName:applicationName.value.trim(),barometerId:barometerId.value.trim(),email:email.value.trim(),group:group.value,method:method.value,dailyVolume:{value:volume.value,unit:volumeUnit.value},...(hecRequestId ? {hecRequestId} : {})});
   } finally {
     submitting = false;
