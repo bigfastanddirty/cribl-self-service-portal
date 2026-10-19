@@ -82,7 +82,7 @@ collector:splunk|Splunk Search Collector|Retrieve Splunk search results in a col
 export const SOURCE_TYPES = rows.split('\n').map(row => { const [type,label,description] = row.split('|'); return {type,label,description}; });
 export function sourceTypeChoices(configured, targets = {}) {
   const lookup = new Map(SOURCE_TYPES.map(s=>[s.type,s]));
-  const choices = configured.map(s=>({key:s.key,label:s.label,description:lookup.get(s.type)?.description || 'Collect events using this configured source. Connection details require administrator review.',disabled:s.disabled,provisioning:s.type==='splunk_hec' && !s.disabled && targets.source===s.key ? 'hec':'summary'}));
+  const choices = configured.map(s=>({key:s.key,label:s.label,description:lookup.get(s.type)?.description || 'Collect events using this configured source. Connection details require administrator review.',disabled:s.disabled,provisioning:s.type==='splunk_hec' && targets.source===s.key ? 'hec':'summary'}));
   for (const source of SOURCE_TYPES) if (!configured.some(s=>s.type===source.type)) choices.push({key:'type:'+source.type,label:source.label,description:source.description+' This type is not configured here; submission records your request only.',disabled:false,provisioning:'summary'});
   return choices.sort((a,b)=>a.label.localeCompare(b.label));
 }

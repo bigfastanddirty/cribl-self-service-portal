@@ -335,3 +335,11 @@ random reference also appear in the service journal for server failures.
 Mail is paused by default and returns an informational status. SMTP configuration
 does not enable it: SUMMARY_EMAIL_ENABLED=1 is also required, after owner approval.
 No error image is shown for the intentionally paused state.
+
+### Disabled mapped HEC source
+
+A disabled mapped Splunk HEC instance can now be enabled on Submit, then receive
+its token through the existing provisioning flow. Mapping and endpoint validation,
+healthy Worker checks, pending-change guards, existing token preservation and no
+Worker restarts remain in force. Unmapped/other Sources remain summary-only. This
+does not create an unconfigured source type or invent its required settings.

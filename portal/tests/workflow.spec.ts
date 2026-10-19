@@ -205,3 +205,10 @@ test('HEC diagnostics omit credentials and report a safe upstream error code',as
  await expect(page.locator('#diagnostic-output')).toHaveValue(/CRIBL_PENDING_CHANGES/);
  const output=await page.locator('#diagnostic-output').inputValue();expect(output).not.toMatch(/never-log|unsafe diagnostic/);await expect(page.locator('#diagnostic-panel')).toHaveAttribute('open','');
 });
+test('disabled mapped HEC runs setup only on Submit',async({page})=>{
+ let posts=0;
+ await page.route('**/source-catalog.json?*',r=>r.fulfill({json:{collectionMethods:[{key:'hec',label:'Splunk HEC',disabled:true,provisioning:'hec'}]}}));
+ await page.route('**/api/hec',r=>{posts++;return r.fulfill({json:{endpoint:'http://example.com',token:'test-only'}});});
+ await page.goto('/');await complete(page);expect(posts).toBe(0);
+ await page.getByRole('button',{name:'Submit request'}).click();await expect(page.getByRole('dialog')).toBeVisible();expect(posts).toBe(1);
+});

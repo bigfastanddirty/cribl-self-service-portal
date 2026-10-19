@@ -535,3 +535,16 @@ selection fallback. Mirror safe error codes/reference to the service journal.
 Email is explicitly paused: return informational EMAIL_PAUSED rather than an error,
 and never send mail while SUMMARY_EMAIL_ENABLED is not 1. Existing SMTP settings
 alone must not enable delivery. No Cribl changes/restarts are needed for this work.
+
+## Enable selected mapped HEC source (2026-10-19)
+
+The owner authorized enabling a disabled selected Source during setup. The current
+implemented setup is narrowly mapped Splunk HEC: disabled mapped instances receive
+HEC provisioning behavior. On explicit Submit, validate endpoint/settings, healthy
+Worker and unrelated pending-change guards first; then PATCH the full mapped Source
+with only disabled=false changed. Preserve settings and existing tokens, verify
+read-back, and continue the existing token/commit/deploy flow without restarts.
+Persist an enable-intent digest privately before PATCH to reconcile retries. Other
+sources remain summary-only until their setup requirements are defined. Merely
+selecting a source does not enable it. No source creation or unrelated edits follow
+from this iteration.

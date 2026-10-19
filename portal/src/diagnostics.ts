@@ -4,6 +4,7 @@ const explanations:Record<string,string>={
  HEC_ENDPOINT_MISMATCH:'HEC endpoint mapping does not match the configured source path, port or TLS mode.',
  PRIVATE_STATE_PERMISSION:'Private request-state directory must be owner-only.',
  HEC_COMMIT_UNCONFIRMED:'HEC commit could not be verified. Retry the same request.',
+ HEC_ENABLE_UNCONFIRMED:'Could not verify enabling the mapped HEC source. Retry the same request or contact your administrator.',
  EMAIL_PAUSED:'Email delivery is intentionally paused; no message was sent.',
  EMAIL_UNAVAILABLE:'Email is paused: SMTP relay is not configured.',
  SOURCE_SUMMARY_ONLY:'Selected source is summary-only. Token, pipeline and route setup were not attempted.',

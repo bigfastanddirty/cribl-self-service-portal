@@ -17,7 +17,7 @@ export function parseCatalog(data: unknown): Catalog {
 export function parseSourceCatalog(data: unknown): CatalogEntry[] {
   if (!data || typeof data !== 'object' || !entries((data as {collectionMethods:unknown}).collectionMethods)) throw new Error('Invalid source catalog');
   return (data as {collectionMethods:CatalogEntry[]}).collectionMethods.map(entry => {
-    if ((entry.disabled !== undefined && typeof entry.disabled !== 'boolean') || (entry.provisioning !== undefined && !['hec','summary'].includes(entry.provisioning)) || (entry.disabled && entry.provisioning === 'hec')) throw new Error('Invalid source catalog');
+    if ((entry.disabled !== undefined && typeof entry.disabled !== 'boolean') || (entry.provisioning !== undefined && !['hec','summary'].includes(entry.provisioning))) throw new Error('Invalid source catalog');
     return {key:entry.key,label:entry.label,...(typeof entry.description === 'string' ? {description:entry.description.slice(0,600)} : {}),disabled:entry.disabled===true,provisioning:entry.provisioning || 'summary'};
   });
 }

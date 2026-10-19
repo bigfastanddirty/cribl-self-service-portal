@@ -9,10 +9,10 @@ test('all catalog types have help and unique safe summary choices',()=>{
  assert.ok(!choices.some(s=>/^(system|cribl|journal)/i.test(s.label)));
  assert.ok(choices.some(s=>s.key==='type:collector:rest'));
 });
-test('configured mapped HEC alone can provision; disabled HEC stays summary-only',()=>{
+test('configured mapped HEC alone can provision; disabled mapped HEC can be enabled on submission',()=>{
  for(const disabled of [false,true]) {
   const choices=sourceTypeChoices([{key:'hec',label:'Splunk HEC',type:'splunk_hec',disabled}],{source:'hec'});
   assert.equal(choices.filter(s=>s.label==='Splunk HEC').length,1);
-  assert.equal(choices.find(s=>s.key==='hec').provisioning,disabled?'summary':'hec');
+  assert.equal(choices.find(s=>s.key==='hec').provisioning,'hec');
  }
 });
