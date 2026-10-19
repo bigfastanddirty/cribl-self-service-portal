@@ -119,3 +119,26 @@ sudo find /opt/cribl-self-service/dist -type f -exec chmod 644 {} +
 
 Refresh the browser; a service restart is not needed. Updated bundles and installers
 normalize these permissions automatically. Image file contents remain unchanged.
+
+## Update an existing offline installation
+
+Wait for any HEC setup to finish, then run from the Git clone directory:
+
+```bash
+git pull --ff-only && sudo ./update.sh
+```
+
+The updater performs no dependency downloads and needs no system Node/npm. It
+verifies vendor and application checksums, checks server syntax using the installed
+private runtime, stages the app, and briefly stops the portal to replace its code.
+It preserves `/etc/cribl-self-service`, `/var/lib/cribl-self-service`, the installed
+runtime, and the existing systemd unit. Cribl is not restarted or modified.
+If the portal was running, it starts it again and checks systemd status; otherwise
+it leaves it stopped. A failed replacement/start restores the previous application.
+This service-status check is not proof that the upstream Leader is reachable.
+Previous application copies remain in `/opt/cribl-self-service-backup.*` for review
+and later administrator cleanup. The updater does not upgrade Node or service units.
+Run `sudo ./update.sh --check` to verify the package and installation without changes.
+A Git clone and Git are needed for `git pull`; a transferred repository can instead
+run `sudo ./update.sh` entirely offline. Fresh installations still use `install.sh`.
+Native RHEL verification remains required.

@@ -472,3 +472,12 @@ existing enabled mapped HEC instance may provision credentials. No source creati
 or enabling is authorized. Provide plain-language descriptions as option tooltips
 and visible selected-source help for keyboard and touch users. Updating the type
 catalog for another Cribl version requires verification; it is not a live type API.
+
+## Existing-installation update script (2026-10-19)
+
+The owner authorized a top-level offline update.sh for existing RHEL installations.
+Verify bundled checksums, stage before stopping the portal, retain the private Node
+runtime and all external configuration/state, preserve stopped service state, and
+restore the previous application on replacement/start failure. Never restart Cribl.
+Keep fresh installation separate. Git pull updates the clone; update.sh deploys
+that verified clone's bundle. Native RHEL operation remains unverified.

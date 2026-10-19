@@ -76,3 +76,18 @@ unverified; the extracted runtime and package have been smoke-tested on Ubuntu.
 
 - [Development target assessment](docs/cribl-development-target.md)
 - [MVP domain model](docs/mvp-domain-model.md)
+
+## Updating an existing installation
+
+From your Git clone, after any HEC setup has finished:
+
+```bash
+git pull --ff-only && sudo ./update.sh
+```
+
+The offline updater verifies the package, preserves configuration/credentials/state
+and the installed runtime, and restarts only the portal if it was already running.
+It retains the previous application and rolls back on replacement/start failure.
+Use `sudo ./update.sh --check` for a verification-only run. See
+[installation and update details](deployment/rhel8/INSTALL.md). Native RHEL testing
+is still required.
