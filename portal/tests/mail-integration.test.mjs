@@ -28,7 +28,7 @@ test('SMTP integration sends owner and requester the validated summary, once',as
  await new Promise(resolve=>smtp.listen(0,'127.0.0.1',resolve));await new Promise(resolve=>upstream.listen(0,'127.0.0.1',resolve));
  const temp=await mkdtemp(path.join(os.tmpdir(),'portal-mail-test-'));const config=path.join(temp,'smtp.json');
  await writeFile(config,JSON.stringify({host:'127.0.0.1',port:smtp.address().port,from:'portal@example.com',secure:false,requireTLS:false}),{mode:0o600});
- const child=spawn(process.execPath,[new URL('../server.mjs',import.meta.url).pathname],{env:{...process.env,PORT:'4176',CRIBL_URL:`http://127.0.0.1:${upstream.address().port}`,CRIBL_API_TOKEN:'test-admin-token',SMTP_CONFIG_FILE:config,NOTIFICATION_STATE_DIR:path.join(temp,'state')},stdio:['ignore','pipe','pipe']});
+ const child=spawn(process.execPath,[new URL('../server.mjs',import.meta.url).pathname],{env:{...process.env,SUMMARY_EMAIL_ENABLED:'1',PORT:'4176',CRIBL_URL:`http://127.0.0.1:${upstream.address().port}`,CRIBL_API_TOKEN:'test-admin-token',SMTP_CONFIG_FILE:config,NOTIFICATION_STATE_DIR:path.join(temp,'state')},stdio:['ignore','pipe','pipe']});
  try{
   await new Promise((resolve,reject)=>{child.stdout.once('data',resolve);child.once('error',reject);child.once('exit',code=>reject(new Error('Test server exited '+code)));});
   const input={requestId:'11111111-1111-4111-8111-111111111111',email:'requester@example.com',barometerId:'BAR-12345',group:'default',method:'api',dailyVolume:{value:'5',unit:'GB'}};

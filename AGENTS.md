@@ -523,3 +523,15 @@ required PATCH; reread before mutation. Multi-process/external-edit atomicity is
 unresolved. No processing commits, deployments, deletions, or restarts are authorized.
 Other sources remain summary-only. Report partial creation and draft-only status;
 HEC readiness does not mean these new processing resources are deployed.
+
+## Copyable diagnostics and paused email (2026-10-19)
+
+The owner authorized an on-page, bounded, copyable diagnostics panel for catalog,
+source selection, HEC, processing and email stages. Log only fixed error codes,
+HTTP status, duration, timestamp, and random support references; never request
+values, tokens, credentials, sample contents, raw upstream bodies or Error objects.
+Keep up to 80 entries in browser memory and support copying on LAN HTTP via text
+selection fallback. Mirror safe error codes/reference to the service journal.
+Email is explicitly paused: return informational EMAIL_PAUSED rather than an error,
+and never send mail while SUMMARY_EMAIL_ENABLED is not 1. Existing SMTP settings
+alone must not enable delivery. No Cribl changes/restarts are needed for this work.

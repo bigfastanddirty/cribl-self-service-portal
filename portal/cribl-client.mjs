@@ -29,13 +29,13 @@ export function createCriblClient({ baseUrl, credentials, initialToken, fetchImp
     if (now() < retryAfter) throw new Error('Worker Groups unavailable');
     pending = (async () => {
       const response = await fetchImpl(new URL('/api/v1/auth/login', base).href, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(await credentials()), signal: AbortSignal.timeout(10000), redirect: 'error' });
-      if (!response.ok) throw new Error('Worker Groups unavailable');
+      if (!response.ok) throw Object.assign(new Error('Worker Groups unavailable'),{status:response.status});
       const data = await response.json();
       if (typeof data.token !== 'string' || !data.token) throw new Error('Worker Groups unavailable');
       current = { token: data.token, expires: expiry(data) };
       return current;
     })();
-    try { return await pending; } catch { retryAfter = now() + 30000; throw new Error('Worker Groups unavailable'); } finally { pending = undefined; }
+    try { return await pending; } catch (cause) { retryAfter = now() + 30000; throw new Error('Worker Groups unavailable',{cause}); } finally { pending = undefined; }
   }
   async function token() { return current && current.expires > now() ? current : login(); }
   async function request(path, method = 'GET', body) {
@@ -81,6 +81,6 @@ export function createCriblClient({ baseUrl, credentials, initialToken, fetchImp
       const data = await request('/products/stream/groups');
       if (!Array.isArray(data.items) || data.items.some(item => typeof item.id !== 'string' || !item.id.trim())) throw new Error();
       return data.items.filter(item => !/test|non-prod|npd/i.test(item.id) && !(typeof item.name === 'string' && /test|non-prod|npd/i.test(item.name))).map(item => ({ key: item.id, label: typeof item.name === 'string' && item.name.trim() ? item.name : item.id === 'default' ? 'Default' : item.id }));
-    } catch { throw new Error('Worker Groups unavailable'); }
+    } catch (cause) { throw new Error('Worker Groups unavailable',{cause}); }
   } };
 }

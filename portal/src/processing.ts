@@ -1,3 +1,4 @@
+import { diagnosticFetch } from './diagnostics';
 interface ProcessingRequest {applicationName:string;barometerId:string;email:string;group:string;source:string;dailyVolume:{value:string;unit:string};hecRequestId:string}
 export function createProcessingSender() {
  let previous='',requestId='';
@@ -12,7 +13,7 @@ export function createProcessingSender() {
   const status=document.getElementById('processing-status')!,error=document.getElementById('processing-error')!;
   status.textContent='Creating your JSON pipeline and route for administrator review…';error.hidden=true;
   try {
-   const response=await fetch('/api/json-setup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...input,requestId}),cache:'no-store'});
+   const response=await diagnosticFetch('/api/json-setup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...input,requestId}),cache:'no-store'});
    const result=await response.json();if(!response.ok || result.status!=='created')throw new Error();
    status.textContent='Your JSON pipeline and route were created. They are not committed or deployed; an administrator must review and deploy them.';return true;
   }catch{status.textContent='Pipeline/route setup is unconfirmed. Retry this request; no commit or deployment was requested.';error.hidden=false;return false;}

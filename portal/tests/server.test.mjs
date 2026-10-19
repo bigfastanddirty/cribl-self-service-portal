@@ -63,7 +63,7 @@ test('summary delivery requires same-origin bounded JSON and configured SMTP',as
  assert.equal((await get('/api/summary','POST',{...headers,Origin:'http://other.example'},payload)).status,403);
  assert.equal((await get('/api/summary','POST',headers,'x'.repeat(4097))).status,400);
  const response=await get('/api/summary','POST',headers,payload);
- assert.equal(response.status,503);assert.equal(JSON.parse(response.body).code,'EMAIL_UNAVAILABLE');
+ assert.equal(response.status,202);assert.equal(JSON.parse(response.body).code,'EMAIL_PAUSED');
 });
 
 test('HEC submission requires BarometerIT before provisioning is attempted',async()=>{

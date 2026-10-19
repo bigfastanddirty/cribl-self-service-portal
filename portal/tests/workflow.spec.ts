@@ -189,3 +189,19 @@ test('processing failure shows image and retry reuses its request ID',async({pag
  await page.getByRole('button',{name:'Submit request'}).click();await expect.poll(()=>requests.length).toBe(2);
  expect(requests[0].requestId).toBe(requests[1].requestId);
 });
+
+test('paused mail is informational and diagnostic details are copyable without secrets',async({page})=>{
+ await page.route('**/api/summary',r=>r.fulfill({status:202,headers:{'X-Portal-Diagnostic':'EMAIL_PAUSED'},json:{status:'paused'}}));
+ await page.goto('/');await complete(page,'api');await page.getByRole('button',{name:'Submit request'}).click();
+ await expect(page.locator('#email-status')).toContainText('Email delivery is paused');await expect(page.locator('#summary-email-error')).toBeHidden();
+ await page.locator('#diagnostic-panel summary').click();
+ await expect(page.locator('#diagnostic-output')).toHaveValue(/SOURCE_SUMMARY_ONLY/);await expect(page.locator('#diagnostic-output')).toHaveValue(/EMAIL_PAUSED/);
+ expect(await page.locator('#diagnostic-output').inputValue()).not.toContain('requester@example.com');
+ await page.locator('#copy-diagnostics').click();await expect(page.locator('#diagnostic-copy-status')).toContainText(/copied|Ctrl\+C/);
+});
+test('HEC diagnostics omit credentials and report a safe upstream error code',async({page})=>{
+ await page.route('**/api/hec',r=>r.fulfill({status:503,headers:{'X-Portal-Diagnostic':'CRIBL_PENDING_CHANGES'},json:{token:'never-log-secret',password:'never-log-password',message:'unsafe diagnostic text'}}));
+ await page.goto('/');await complete(page);await page.getByRole('button',{name:'Submit request'}).click();
+ await expect(page.locator('#diagnostic-output')).toHaveValue(/CRIBL_PENDING_CHANGES/);
+ const output=await page.locator('#diagnostic-output').inputValue();expect(output).not.toMatch(/never-log|unsafe diagnostic/);await expect(page.locator('#diagnostic-panel')).toHaveAttribute('open','');
+});

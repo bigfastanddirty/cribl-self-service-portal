@@ -1,3 +1,4 @@
+import { diagnosticFetch } from './diagnostics';
 interface Summary { applicationName?:string; barometerId:string; email:string; group:string; method:string; dailyVolume:{value:string;unit:string}; hecRequestId?:string }
 export function createSummarySender(){
  let previous='',requestId='';let sent=false;
@@ -15,8 +16,9 @@ export function createSummarySender(){
   if(!sent){
    status.textContent='Sending your request summary…';
    try{
-    const response=await fetch('/api/summary',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...summary,requestId}),cache:'no-store'});
+    const response=await diagnosticFetch('/api/summary',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...summary,requestId}),cache:'no-store'});
     const result=await response.json();
+    if(response.ok && result.status==='paused'){status.textContent='Email delivery is paused. Your request summary is available on this page.';return;}
     if(!response.ok || result.status!=='sent')throw new Error(result.code==='EMAIL_UNAVAILABLE'?'unconfigured':'failed');
     sent=true;
    }catch(failure){

@@ -1,3 +1,4 @@
+import { diagnosticFetch } from './diagnostics';
 export function initializeHec(group: HTMLSelectElement, method: HTMLSelectElement, form: HTMLFormElement): { submit: () => Promise<string | undefined>; busy: () => boolean } {
   const find = <T extends HTMLElement>(id: string) => document.getElementById(id)! as T;
   const section = find('hec-action');
@@ -46,7 +47,7 @@ export function initializeHec(group: HTMLSelectElement, method: HTMLSelectElemen
       if (credentials) { showCredentials(); displayed = true; }
       const deadline = Date.now() + 10 * 60 * 1000;
       while (true) {
-        const response = await fetch('/api/hec', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ group: group.value, requestId, source:method.value, barometerId: find<HTMLInputElement>('barometer-id').value.trim() }), cache: 'no-store' });
+        const response = await diagnosticFetch('/api/hec', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ group: group.value, requestId, source:method.value, barometerId: find<HTMLInputElement>('barometer-id').value.trim() }), cache: 'no-store' });
         if (response.status === 202) {
           const pending = await response.json();
           if (typeof pending.endpoint === 'string' && typeof pending.token === 'string' && pending.token) {

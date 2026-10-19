@@ -1,3 +1,4 @@
+import { diagnosticFetch, initializeDiagnostics, recordDiagnostic } from './diagnostics';
 import './style.css';
 import {createProcessingSender} from './processing';
 import { createSummarySender } from './summary';
@@ -11,6 +12,7 @@ function element<T extends HTMLElement>(id: string): T {
   if (!result) throw new Error(`Missing interface element: ${id}`);
   return result as T;
 }
+initializeDiagnostics();
 const form = element<HTMLFormElement>('request-form');
 const barometerId = element<HTMLInputElement>('barometer-id');
 const applicationName = element<HTMLInputElement>('application-name');
@@ -203,6 +205,7 @@ form.addEventListener('submit', async event => {
   controls.forEach(control => control.disabled = true);
   try {
     const provisionsHec = catalog.collectionMethods.find(e => e.key === method.value)?.provisioning === 'hec';
+    recordDiagnostic('Workflow',provisionsHec?'SOURCE_HEC_SETUP':catalog.collectionMethods.find(e=>e.key===method.value)?.disabled?'SOURCE_DISABLED':'SOURCE_SUMMARY_ONLY');
     const hecRequestId = provisionsHec ? await hec.submit() : undefined;
     if (provisionsHec && !hecRequestId) return;
     if (hecRequestId && !await processingSender.send({applicationName:applicationName.value.trim(),barometerId:barometerId.value.trim(),email:email.value.trim(),group:group.value,source:method.value,dailyVolume:{value:volume.value,unit:volumeUnit.value},hecRequestId})) return;
@@ -233,7 +236,7 @@ async function loadSources(): Promise<void> {
   element('service-error').hidden = true;
   element('source-status').textContent = 'Loading source choices…';
   try {
-    const response = await fetch('/source-catalog.json?group=' + encodeURIComponent(selectedGroup), {cache:'no-store'});
+    const response = await diagnosticFetch('/source-catalog.json?group=' + encodeURIComponent(selectedGroup), {cache:'no-store'});
     if (!response.ok) throw new Error('Sources unavailable');
     const choices = parseSourceCatalog(await response.json());
     if (version !== sourceVersion || group.value !== selectedGroup || !catalog) return;
@@ -255,7 +258,7 @@ async function loadCatalog(): Promise<void> {
   retry.disabled = true;
   element('catalog-status').textContent = 'Loading Worker Groups…';
   try {
-    const response = await fetch('/catalog.json', { cache: 'no-store' });
+    const response = await diagnosticFetch('/catalog.json', { cache: 'no-store' });
     if (!response.ok) {
       element('catalog-failure').textContent = 'We couldn’t load your choices. Please try again.';
       throw new Error('Catalog unavailable');

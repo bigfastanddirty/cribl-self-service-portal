@@ -322,3 +322,16 @@ remain summary-only. Existing resource collisions block overwrites.
 defaults to `json-requests` beside `HEC_STATE_DIR`. Update and restart only the portal
 when no provisioning/setup is running. No Cribl service restarts are used. See
 `docs/json-pipeline-framework.md` for retry recovery and concurrent-edit limits.
+
+### Diagnostics and mail pause
+
+Open **Setup diagnostics** at the bottom of the page and use **Copy diagnostics**
+(or Ctrl+C after fallback selection). Failures open the panel automatically. It
+shows workflow branch, HTTP stage/status, timestamps, durations and safe fixed error
+codes, never raw responses or entered request values. Browser entries are bounded
+to 80 and disappear on refresh; Clear removes them immediately. Safe codes and a
+random reference also appear in the service journal for server failures.
+
+Mail is paused by default and returns an informational status. SMTP configuration
+does not enable it: SUMMARY_EMAIL_ENABLED=1 is also required, after owner approval.
+No error image is shown for the intentionally paused state.
