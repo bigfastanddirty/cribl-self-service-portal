@@ -1,0 +1,24 @@
+# Local work, generated distributions, and verification artifacts
+/work/
+/outputs/
+node_modules/
+dist/
+test-results/
+playwright-report/
+*.log
+core
+
+# Private environment and runtime state (examples remain versioned)
+.env
+.env.*
+!.env.example
+credentials.json
+smtp.json
+hec-targets.json
+hec-requests/
+notifications/
+*.pem
+*.key
+*.p12
+*.pfx
+.DS_Store

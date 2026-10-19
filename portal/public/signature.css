@@ -1,0 +1,7 @@
+.site-signature{display:block;width:150px;height:50px;object-fit:contain;flex-shrink:0}
+.signature-footer{display:flex;align-items:center;justify-content:flex-end;gap:20px}
+.error-signature-footer{max-width:70rem;margin:16px auto 0;padding:0 4px}
+@media(max-width:520px){.signature-footer{gap:12px}.site-signature{width:126px;height:42px}}
+
+.site-header-mark{display:block;width:97px;height:40px;object-fit:contain;flex-shrink:0}
+@media(max-width:520px){.site-header-mark{width:78px;height:32px}}

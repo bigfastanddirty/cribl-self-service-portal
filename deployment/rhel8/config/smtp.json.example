@@ -1,0 +1,1 @@
+{"host":"smtp.internal.example","port":587,"from":"cribl-portal@example.com","secure":false,"requireTLS":true}

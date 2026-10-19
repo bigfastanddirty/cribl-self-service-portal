@@ -1,0 +1,23 @@
+[Unit]
+Description=Cribl Self-Service Portal
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=cribl-portal
+Group=cribl-portal
+WorkingDirectory=/opt/cribl-self-service
+EnvironmentFile=/etc/cribl-self-service/portal.env
+ExecStart=/usr/bin/node /opt/cribl-self-service/server.mjs
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/cribl-self-service
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "provenance": "Worker Groups are development examples · Collection methods: HEC, API, Other",
+  "workerGroups": [
+    {
+      "key": "dev-east",
+      "label": "Example · East region"
+    },
+    {
+      "key": "dev-west",
+      "label": "Example · West region"
+    },
+    {
+      "key": "dev-central",
+      "label": "Example · Central services"
+    }
+  ]
+}
