@@ -9,6 +9,10 @@ trap 'rm -rf "$stage"' EXIT
 mkdir -p "$stage/$name/app/node_modules" "$repo/outputs"
 cp -a "$repo/deployment/rhel8/install.sh" "$repo/deployment/rhel8/cribl-self-service.service" "$repo/deployment/rhel8/config" "$repo/deployment/rhel8/INSTALL.md" "$repo/deployment/rhel8/REQUIREMENTS.md" "$stage/$name/"
 cp -a "$repo/portal/dist" "$stage/$name/app/"
+# Public images may originate as owner-only files. Installed static assets must
+# be readable by the dedicated service user, without changing their contents.
+find "$stage/$name/app/dist" -type d -exec chmod 0755 {} +
+find "$stage/$name/app/dist" -type f -exec chmod 0644 {} +
 for file in server.mjs cribl-client.mjs hec-service.mjs notification-service.mjs mail-transport.mjs; do cp "$repo/portal/$file" "$stage/$name/app/"; done
 # The only runtime dependency is architecture-independent JavaScript. Never copy
 # the whole development node_modules tree or any private VM configuration.

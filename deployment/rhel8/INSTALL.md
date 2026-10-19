@@ -105,3 +105,17 @@ entry point now redirects there automatically. Root installation stages the runt
 under /opt rather than /tmp to accommodate enterprise noexec temporary mounts.
 A bundled binary that cannot execute no longer silently falls back to system Node.
 Runtime failures now identify the selected binary/version or show its loader error.
+
+## Static image HTTP 500 on an older installation
+
+Earlier bundles preserved owner-only permissions on error-pepe.png and signature.png.
+After root installation the service account could not read them. Repair only static
+asset permissions (no credential/state permissions are changed):
+
+```bash
+sudo find /opt/cribl-self-service/dist -type d -exec chmod 755 {} +
+sudo find /opt/cribl-self-service/dist -type f -exec chmod 644 {} +
+```
+
+Refresh the browser; a service restart is not needed. Updated bundles and installers
+normalize these permissions automatically. Image file contents remain unchanged.

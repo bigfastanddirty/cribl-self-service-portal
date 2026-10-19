@@ -406,3 +406,10 @@ exists but cannot execute, fail with its path instead of falling back to system
 Node 10. Preserve loader errors and report the selected Node version. Native RHEL
 verification is still required; these diagnostics must not claim its root cause
 has been established without target output.
+
+## Static asset installation permissions (2026-10-19)
+
+Public dist directories must be mode 755 and public asset files mode 644 in bundles
+and installed copies. Preserve original image contents; normalize metadata only.
+Earlier owner-only image permissions caused HTTP 500 under the dedicated service
+account. Apply this policy only to static assets, never private configuration/state.

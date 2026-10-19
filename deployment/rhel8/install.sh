@@ -13,7 +13,7 @@ source /etc/os-release
 [[ ${ID:-} == rhel && ${VERSION_ID:-} == 8.* ]] || fail 'This installer targets RHEL 8.10 with Node.js 22'
 minor=${VERSION_ID#8.}; minor=${minor%%.*}
 [[ $minor =~ ^[0-9]+$ && $minor -ge 10 ]] || fail 'Update to RHEL 8.10 first'
-for cmd in install cp sha256sum systemctl getent useradd chown; do command -v "$cmd" >/dev/null || fail "Missing command: $cmd"; done
+for cmd in find install cp sha256sum systemctl getent useradd chown; do command -v "$cmd" >/dev/null || fail "Missing command: $cmd"; done
 # BEGIN runtime validation
 node_bin=/usr/bin/node
 if [[ -f "$bundle/app/runtime/bin/node" ]]; then
@@ -39,6 +39,8 @@ install -d -m 0755 /opt/cribl-self-service
 cp -a "$bundle/app/." /opt/cribl-self-service/
 chown -R root:root /opt/cribl-self-service
 chmod -R go-w /opt/cribl-self-service
+find /opt/cribl-self-service/dist -type d -exec chmod 0755 {} +
+find /opt/cribl-self-service/dist -type f -exec chmod 0644 {} +
 install -d -o root -g cribl-portal -m 0750 /etc/cribl-self-service
 install -o root -g root -m 0600 "$bundle/config/portal.env" /etc/cribl-self-service/portal.env
 install -o cribl-portal -g cribl-portal -m 0600 "$bundle/config/credentials.json.example" /etc/cribl-self-service/credentials.json
