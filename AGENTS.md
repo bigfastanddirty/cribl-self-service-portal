@@ -481,3 +481,15 @@ runtime and all external configuration/state, preserve stopped service state, an
 restore the previous application on replacement/start failure. Never restart Cribl.
 Keep fresh installation separate. Git pull updates the clone; update.sh deploys
 that verified clone's bundle. Native RHEL operation remains unverified.
+
+## JSON pipeline proposal framework (2026-10-19)
+
+The owner supplied a JSON pipeline example and authorized the first Route/Pipeline
+framework. Implement a pure versioned JSON recipe: Serde extract JSON from _raw,
+then Eval set the request's BarometerIT as a safely quoted literal and remove _raw.
+Reproduce the example's pipeline envelope without accepting arbitrary expressions.
+This authorizes proposal generation, not new Cribl mutations or automatic selection
+of JSON processing. No new form controls or sample visibility changes are implied.
+Route matching/destination/placement/naming remain unresolved and must block Route
+generation. Parse-failure retention and collisions require verification before use.
+See docs/json-pipeline-framework.md. Existing HEC action remains unchanged.
