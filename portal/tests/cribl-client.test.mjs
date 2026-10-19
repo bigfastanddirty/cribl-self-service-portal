@@ -73,9 +73,10 @@ test('returns an empty catalog when every Worker Group is excluded',async()=>{
 test('lists every configured source including disabled entries, returning no configuration secrets',async()=>{
  const client=createCriblClient({baseUrl:'http://localhost',initialToken:'existing',fetchImpl:async url=>{
   assert.match(url,/\/m\/default\/system\/inputs\?offset=0&limit=100$/);
-  return Response.json({items:[{id:'in_hec',type:'splunk_hec',disabled:false,authTokens:[{token:'private-source-token'}]},{id:'in_syslog',type:'syslog',disabled:true,password:'private-password'}]});
+  return Response.json({items:[{id:'in_hec',type:'splunk_hec',disabled:false,authTokens:[{token:'private-source-token'}]},{id:'in_syslog',type:'syslog',disabled:true,password:'private-password'},{id:'system_metrics',type:'system_metrics'},{id:'cribl_http',type:'cribl_http'},{id:'journal',type:'journal_files'},{id:'custom',type:'file',name:'Journal Files'}]});
  }});
  const sources=await client.sources('default');
+ assert.equal(sources.find(source=>source.key==='in_syslog').label,'Syslog');
  assert.equal(sources.length,2);assert.equal(sources[1].disabled,true);
  assert.doesNotMatch(JSON.stringify(sources),/private-source-token|private-password|authTokens/);
 });

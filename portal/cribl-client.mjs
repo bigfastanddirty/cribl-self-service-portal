@@ -64,11 +64,12 @@ export function createCriblClient({ baseUrl, credentials, initialToken, fetchImp
         if (typeof item.id !== 'string' || !item.id || item.id.length > 256 || /[\x00-\x1f\x7f]/.test(item.id) || typeof item.type !== 'string' || !item.type || seen.has(item.id)) throw new Error('Invalid source catalog');
         seen.add(item.id);
         const label = typeof item.name === 'string' && item.name.trim() ? item.name.trim().slice(0,160) : (Object.hasOwn(labels,item.type) ? labels[item.type] : undefined) || item.type.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+        if (/^(system|cribl|journal)/i.test(item.type) || /^(system|cribl|journal)/i.test(label) || /^(system|cribl|journal)/i.test(item.id)) continue;
         all.push({key:item.id,label,type:item.type,disabled:item.disabled === true});
       }
       if (data.items.length < 100) {
         const counts = new Map();
-        for (const source of all) { const count=(counts.get(source.label)||0)+1; counts.set(source.label,count); source.label += (count>1 ? ' ('+count+')' : '') + (source.disabled?' — disabled':''); }
+        for (const source of all) { const count=(counts.get(source.label)||0)+1; counts.set(source.label,count); source.label += (count>1 ? ' ('+count+')' : ''); }
         return all;
       }
     }

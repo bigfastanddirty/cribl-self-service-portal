@@ -134,11 +134,11 @@ test('BarometerIT is required, included in the summary, and cleared on reset',as
 test('includes disabled configured sources and keeps the existing question label',async({page})=>{
  const writes:string[]=[];
  await page.route('**/api/hec',r=>{writes.push('hec');return r.fulfill({status:500});});
- await page.route('**/source-catalog.json?*',r=>r.fulfill({json:{collectionMethods:[{key:'disabled-hec',label:'Splunk HEC — disabled',disabled:true,provisioning:'summary'},{key:'syslog-listener',label:'Syslog',disabled:false,provisioning:'summary'}]}}));
+ await page.route('**/source-catalog.json?*',r=>r.fulfill({json:{collectionMethods:[{key:'disabled-hec',label:'Splunk HEC',disabled:true,provisioning:'summary'},{key:'syslog-listener',label:'Syslog',disabled:false,provisioning:'summary'}]}}));
  await page.goto('/');await page.locator('#requester-email').fill('requester@example.com');await page.locator('#barometer-id').fill('BAR-1');await page.locator('#worker-group').selectOption('default');
  await expect(page.locator('label[for=collection-method]')).toContainText('What methods are available to collect your logs?');
  await expect(page.locator('#collection-method option')).toHaveCount(3);await page.locator('#collection-method').selectOption('disabled-hec');await page.locator('#daily-volume').fill('1');
- await page.getByRole('button',{name:'Submit request'}).click();await expect(page.locator('#review-method')).toHaveText('Splunk HEC — disabled');expect(writes).toEqual([]);
+ await page.getByRole('button',{name:'Submit request'}).click();await expect(page.locator('#review-method')).toHaveText('Splunk HEC');expect(writes).toEqual([]);
 });
 test('source lookup failure shows the error image and retry keeps the selected location',async({page})=>{
  let calls=0;await page.route('**/source-catalog.json?*',r=>{calls++;return r.fulfill(calls===1?{status:503}:{json:{collectionMethods:[{key:'syslog',label:'Syslog',provisioning:'summary'}]}});});

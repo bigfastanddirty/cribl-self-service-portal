@@ -494,7 +494,7 @@ translated into Cribl routing configuration, token descriptions, or source metad
 Keep the existing collection-method question wording. Its values now identify
 configured Source instances in the selected Worker Group, fetched from Cribl,
 including disabled instances. Internal key is the Source identifier; customers see
-a friendly source label and disabled marker. Multiple instances stay separate.
+a friendly source label without a disabled-status suffix. System*, Cribl*, and journal-file sources are excluded from customer choices. Multiple instances stay separate.
 The catalog does not represent unconfigured Source types or Collector jobs.
 
 The portal emits only key, label, disabled, and provisioning policy (HEC or summary).

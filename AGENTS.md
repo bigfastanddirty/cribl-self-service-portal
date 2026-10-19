@@ -453,3 +453,11 @@ Summary notification validates current group/source references and derives label
 server-side. No Source creation, enabling, deletion, or additional Cribl mutation is
 authorized. Live email delivery remains paused. Refresh or changing source/location
 discards browser credentials but does not revoke ingestion tokens.
+
+## Source-choice presentation exclusions (2026-10-19)
+
+Keep disabled sources selectable without adding a disabled label or suffix. Exclude
+System*, Cribl*, and journal-file sources from customer choices, matching source
+type, identifier, or friendly label case-insensitively. Preserve internal disabled
+state and existing provisioning restrictions. These are display exclusions only;
+do not change any configuration in Cribl.
