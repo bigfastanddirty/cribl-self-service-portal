@@ -1,4 +1,5 @@
 import './style.css';
+import {createProcessingSender} from './processing';
 import { createSummarySender } from './summary';
 import { initializeHec } from './hec';
 import { classifyLog, type LogFinding } from './log-analysis';
@@ -15,6 +16,7 @@ const barometerId = element<HTMLInputElement>('barometer-id');
 const applicationName = element<HTMLInputElement>('application-name');
 const email = element<HTMLInputElement>('requester-email');
 const summarySender = createSummarySender();
+const processingSender = createProcessingSender();
 let submitting = false;
 const group = element<HTMLSelectElement>('worker-group');
 const method = element<HTMLSelectElement>('collection-method');
@@ -46,6 +48,8 @@ function invalidatePreview(): void {
   if (!element('preview-result').hidden) element('announcement').textContent = 'Your request changed. Review the preview again to see the latest selections.';
   element('preview-result').hidden = true;
   element('preview-empty').hidden = false;
+  element('processing-status').textContent = '';
+  element('processing-error').hidden = true;
   element('email-status').textContent = '';
   element('summary-email-error').hidden = true;
   if (attemptedReview && catalog) showErrors(validateDraft(draft(), catalog, false));
@@ -201,6 +205,7 @@ form.addEventListener('submit', async event => {
     const provisionsHec = catalog.collectionMethods.find(e => e.key === method.value)?.provisioning === 'hec';
     const hecRequestId = provisionsHec ? await hec.submit() : undefined;
     if (provisionsHec && !hecRequestId) return;
+    if (hecRequestId && !await processingSender.send({applicationName:applicationName.value.trim(),barometerId:barometerId.value.trim(),email:email.value.trim(),group:group.value,source:method.value,dailyVolume:{value:volume.value,unit:volumeUnit.value},hecRequestId})) return;
     await summarySender.send({applicationName:applicationName.value.trim(),barometerId:barometerId.value.trim(),email:email.value.trim(),group:group.value,method:method.value,dailyVolume:{value:volume.value,unit:volumeUnit.value},...(hecRequestId ? {hecRequestId} : {})});
   } finally {
     submitting = false;

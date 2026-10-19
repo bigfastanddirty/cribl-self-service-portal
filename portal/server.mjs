@@ -1,3 +1,6 @@
+import { applicationPipelineId } from './json-clone.mjs';
+import { createJsonSetupService } from './json-setup-service.mjs';
+import { validEmail } from './notification-service.mjs';
 import { sourceTypeChoices } from './source-types.mjs';
 import http from 'node:http';
 import { createNotificationService } from './notification-service.mjs';
@@ -20,6 +23,8 @@ async function sourceChoices(group) {
   if (!(await cribl.workerGroups()).some(g => g.key === group)) throw new Error('Location unavailable');
   return sourceTypeChoices(await cribl.sources(group), hecTargets[group]);
 }
+const jsonState = process.env.JSON_SETUP_STATE_DIR || (process.env.HEC_STATE_DIR ? path.join(process.env.HEC_STATE_DIR,'..','json-requests') : undefined);
+const jsonSetup = jsonState ? createJsonSetupService({request:cribl.request,store:fileStore(jsonState)}) : undefined;
 let notifications;
 if (process.env.SMTP_CONFIG_FILE && process.env.NOTIFICATION_STATE_DIR) {
   try {
@@ -42,6 +47,29 @@ const server = http.createServer(async (req, res) => {
   let urlPath;
   try { urlPath = decodeURIComponent(new URL(req.url, 'http://localhost').pathname); }
   catch { error(400); return; }
+  if (urlPath === '/api/json-setup' && req.method === 'POST') {
+    const json = (status,data) => {res.writeHead(status,{'Content-Type':'application/json; charset=utf-8'});res.end(JSON.stringify(data));};
+    if(req.headers.origin !== 'http://' + req.headers.host || (req.headers['sec-fetch-site'] && req.headers['sec-fetch-site'] !== 'same-origin')) {json(403,{message:'Open the portal directly to submit.'});return;}
+    let input;
+    try {
+      if(req.headers['content-type']?.split(';')[0].trim() !== 'application/json') throw new Error();
+      let bytes=0;const chunks=[];for await(const chunk of req){bytes+=chunk.length;if(bytes>4096)throw new Error();chunks.push(chunk);}
+      input=JSON.parse(Buffer.concat(chunks).toString('utf8'));
+      if(!input || Object.keys(input).some(k=>!['group','source','requestId','hecRequestId','applicationName','barometerId','email','dailyVolume'].includes(k)) || !validRequestId(input.requestId) || !validRequestId(input.hecRequestId) || typeof input.group!=='string' || !/^[A-Za-z0-9_-]{1,128}$/.test(input.group) || !validEmail(input.email))throw new Error();
+      const v=input.dailyVolume;
+      if(!v || typeof v.value!=='string' || !/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(v.value) || !['GB','TB'].includes(v.unit) || !Number.isFinite(Number(v.value)*(v.unit==='TB'?1000:1)) || Number(v.value)*(v.unit==='TB'?1000:1)<1)throw new Error();
+      if(typeof input.applicationName!=='string' || !input.applicationName.trim() || input.applicationName.trim().length>100 || /[\x00-\x1f\x7f]/.test(input.applicationName) || typeof input.barometerId!=='string' || !input.barometerId.trim() || input.barometerId.trim().length>128 || /[\x00-\x1f\x7f]/.test(input.barometerId))throw new Error();
+      applicationPipelineId(input.applicationName);
+    } catch {json(400,{message:'Invalid processing setup request.'});return;}
+    if(!jsonSetup || !process.env.HEC_STATE_DIR){json(503,{message:'Processing setup is not configured.'});return;}
+    try {
+      const selected=(await sourceChoices(input.group)).find(s=>s.key===input.source);
+      const hecRecord=await fileStore(process.env.HEC_STATE_DIR).get(input.hecRequestId);
+      if(selected?.provisioning!=='hec' || !hecRecord?.complete || hecRecord.group!==input.group){json(400,{message:'An approved, completed HEC setup is required.'});return;}
+      json(200,await jsonSetup.create(input));
+    } catch {json(503,{message:'Pipeline/route setup could not be confirmed. Retry the same request or contact your administrator. Configuration may be partially created; nothing was committed or deployed.'});}
+    return;
+  }
   if (urlPath === '/api/summary' && req.method === 'POST') {
     const json = (status, data) => { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(data)); };
     if (!req.headers.origin || req.headers.origin !== 'http://' + req.headers.host || (req.headers['sec-fetch-site'] && req.headers['sec-fetch-site'] !== 'same-origin')) { json(403, { message: 'Open the portal directly to submit a request.' }); return; }

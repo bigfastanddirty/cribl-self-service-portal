@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 const catalog={version:1,provenance:'Test choices',workerGroups:[{key:'default',label:'Default'}]};
-test.beforeEach(async({page})=>{await page.route('**/source-catalog.json?*',r=>r.fulfill({json:{collectionMethods:[{key:'hec',label:'HEC',provisioning:'hec'},{key:'api',label:'API',provisioning:'summary'},{key:'other',label:'Other',disabled:true,provisioning:'summary'}]}}));await page.route('**/catalog.json',r=>r.fulfill({json:catalog}));await page.route('**/api/summary',r=>r.fulfill({json:{status:'sent'}}));});
+test.beforeEach(async({page})=>{await page.route('**/api/json-setup',r=>r.fulfill({json:{status:'created',pipeline:'pl_Akamai_Audit',route:'Akamai Audit',deployed:false}}));await page.route('**/source-catalog.json?*',r=>r.fulfill({json:{collectionMethods:[{key:'hec',label:'HEC',provisioning:'hec'},{key:'api',label:'API',provisioning:'summary'},{key:'other',label:'Other',disabled:true,provisioning:'summary'}]}}));await page.route('**/catalog.json',r=>r.fulfill({json:catalog}));await page.route('**/api/summary',r=>r.fulfill({json:{status:'sent'}}));});
 async function complete(page:import('@playwright/test').Page,method='hec') {
  await page.locator('#requester-email').fill('requester@example.com');
  await page.locator('#application-name').fill('Akamai Audit');await page.locator('#barometer-id').fill('BAR-12345');
@@ -170,4 +170,22 @@ test('application name is required and appears in the request summary',async({pa
  await page.goto('/');await complete(page,'api');await page.locator('#application-name').fill(' ');
  await page.getByRole('button',{name:'Submit request'}).click();await expect(page.locator('#applicationName-error')).toContainText('Enter an application');
  await page.locator('#application-name').fill('Akamai Audit');await page.getByRole('button',{name:'Submit request'}).click();await expect(page.locator('#review-application-name')).toHaveText('Akamai Audit');
+});
+
+test('HEC completion creates processing drafts and reports uncommitted state',async({page})=>{
+ const requests:any[]=[];
+ await page.route('**/api/hec',r=>r.fulfill({json:{endpoint:'http://example.com',token:'test-token'}}));
+ await page.route('**/api/json-setup',r=>{requests.push(r.request().postDataJSON());return r.fulfill({json:{status:'created',deployed:false}});});
+ await page.goto('/');await complete(page);await page.getByRole('button',{name:'Submit request'}).click();
+ await expect(page.locator('#processing-status')).toContainText('not committed or deployed');
+ expect(requests[0].applicationName).toBe('Akamai Audit');expect(requests[0].barometerId).toBe('BAR-12345');
+});
+test('processing failure shows image and retry reuses its request ID',async({page})=>{
+ const requests:any[]=[];
+ await page.route('**/api/hec',r=>r.fulfill({json:{endpoint:'http://example.com',token:'test-token'}}));
+ await page.route('**/api/json-setup',r=>{requests.push(r.request().postDataJSON());return r.fulfill({status:503,json:{message:'failed'}});});
+ await page.goto('/');await complete(page);await page.getByRole('button',{name:'Submit request'}).click();
+ await expect(page.locator('#processing-error img')).toBeVisible();await page.locator('#close-hec').click();
+ await page.getByRole('button',{name:'Submit request'}).click();await expect.poll(()=>requests.length).toBe(2);
+ expect(requests[0].requestId).toBe(requests[1].requestId);
 });

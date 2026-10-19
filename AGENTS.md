@@ -509,3 +509,17 @@ missing prerequisites and placement policy are resolved, not other mutations,
 commits/deployments, or restarts. Local pl_json lookup currently returns 404; the
 existing final catch-all means placement must be clarified before writing a Route.
 The clone/Route builders are prepared but not connected to Submit while blocked.
+
+## Authorized HEC JSON clone and Route submission (2026-10-19)
+
+The owner created pl_json and approved enabled filter=true placement at the bottom,
+immediately before default. Use final=true and devnull for this iteration. Following
+completed approved HEC provisioning, Submit may clone that group's pl_json, replace
+its single active BarometerIT literal, create pl_<application>, and insert the named
+Route. Preserve existing resources and the template; reject collisions, missing
+references, and changed retry inputs. Keep private durable request state and verify
+read-back. Preserve the complete Route table, including comments/groups, during the
+required PATCH; reread before mutation. Multi-process/external-edit atomicity is
+unresolved. No processing commits, deployments, deletions, or restarts are authorized.
+Other sources remain summary-only. Report partial creation and draft-only status;
+HEC readiness does not mean these new processing resources are deployed.

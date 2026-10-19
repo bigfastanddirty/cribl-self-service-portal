@@ -90,3 +90,44 @@ traffic to devnull. These block live creation. The clone builder is not connecte
 to Submit yet; existing HEC behavior is unchanged. No new pipeline, Route, commit,
 deployment, or Worker restart was performed. The pending placement decision and
 owner-supplied template are needed before enabling this submission integration.
+
+## Authorized creation flow (2026-10-19)
+
+The owner has created `pl_json` and approved an enabled `true` Route immediately
+before the final `default` Route. This supersedes the earlier missing-template and
+placement blockers. The application Route uses Stop After Match (`final: true`)
+and `devnull`. It matches all events that reach this position, not just one HEC
+token. Nothing is committed/deployed by the new processing service.
+
+After the existing enabled mapped HEC setup finishes, Submit invokes a bounded,
+same-origin JSON processing endpoint. It validates current group/source references,
+completed HEC request state, application name, BarometerIT, requester email and
+volume. Other source types remain summary-only. No raw config is accepted.
+
+The server reads and clones the selected group's template, creates a new pipeline,
+then reads/preserves the complete route table and inserts one enabled Route before
+`default`. Existing pipelines/routes with the requested identity cause a collision
+error, rather than overwrite. The default Route must exist exactly once and be last.
+Cribl's local API requires a complete Route table PATCH; comments, groups, existing
+Route order, and existing settings are retained. A second read before PATCH detects
+intervening changes, but there is no established compare-and-swap guarantee: avoid
+concurrent administrative edits and multiple portal processes during this prototype.
+
+Private journals persist intent and the original Route table before writes. Retry
+uses the same request ID, checks existing pipeline/Route content and placement,
+and recovers partial creation without duplicate resources. Changed requests or
+ambiguous state require administrator review. No automatic deletion/rollback of
+Cribl resources is attempted. A pipeline may remain if Route creation fails.
+
+State defaults to `json-requests` next to the configured HEC journal directory;
+`JSON_SETUP_STATE_DIR` can override it. It must remain owner-only and outside the
+app/public directories. No credentials, tokens, or raw template config are returned
+to the browser. Pipeline/Route setup is uncommitted and undeployed, even though HEC
+credentials may already be ready. Further HEC submissions may be blocked by these
+pending changes until an administrator reviews and handles them. The updater must
+not interrupt an active provisioning/processing request.
+
+Validation uses mocked Cribl writes and local read-only template verification.
+No arbitrary demonstration BarometerIT or application was invented to create live
+resources. A real customer submission provides those values. Native RHEL and Cribl
+runtime processing verification remain outstanding.

@@ -306,3 +306,19 @@ System*, Cribl*, and Journal Files remain excluded. Unconfigured types are
 summary-only; this catalog never enables or creates sources. Each choice has a
 plain-language tooltip and selected-choice description. Verify the catalog when
 upgrading Cribl; no live source-type discovery endpoint is assumed.
+
+### HEC JSON processing setup
+
+After approved HEC credentials are ready, Submit clones the selected group's
+owner-maintained `pl_json`, changes its single active BarometerIT assignment, and
+creates `pl_<application_name>`. It creates an enabled, final Route named after
+the application, filter `true`, output `devnull`, immediately before the final
+`default` Route. These processing changes are **not committed or deployed**.
+The UI reports this separately from HEC token readiness. Administrator review is
+required; pending changes can block subsequent HEC provisioning. Other Sources
+remain summary-only. Existing resource collisions block overwrites.
+
+`JSON_SETUP_STATE_DIR` optionally overrides the owner-only journal directory, which
+defaults to `json-requests` beside `HEC_STATE_DIR`. Update and restart only the portal
+when no provisioning/setup is running. No Cribl service restarts are used. See
+`docs/json-pipeline-framework.md` for retry recovery and concurrent-edit limits.

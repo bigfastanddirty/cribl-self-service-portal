@@ -40,9 +40,11 @@ export function createCriblClient({ baseUrl, credentials, initialToken, fetchImp
   async function token() { return current && current.expires > now() ? current : login(); }
   async function request(path, method = 'GET', body) {
     const route = path.split('?')[0];
+    const processing = /^\/m\/[a-zA-Z0-9_-]+\/(pipelines(?:\/[a-zA-Z0-9_-]+)?|routes\/default)$/.exec(route);
+    if(processing && !((route.endsWith('/pipelines') && method==='POST') || (!route.endsWith('/pipelines') && method==='GET') || (route.endsWith('/routes/default') && method==='PATCH'))) throw new Error('Unsupported processing operation');
     if (/^\/m\/[a-zA-Z0-9_-]+\/system\/inputs$/.test(route) && method !== 'GET') throw new Error('Source discovery is read-only');
     if (path.includes('?') && !(method === 'GET' && /^\/m\/[a-zA-Z0-9_-]+\/system\/inputs\?offset=\d{1,6}&limit=100$/.test(path))) throw new Error('Unsupported Cribl operation');
-    if (!/^\/(products\/stream\/workers\/restart|products\/stream\/groups(?:\/[a-zA-Z0-9_-]+\/deploy)?|master\/workers|m\/[a-zA-Z0-9_-]+\/(?:version(?:\/(?:status|commit))?|system\/inputs(?:\/[a-zA-Z0-9_-]+(?:\/hectoken)?)?))$/.test(route)) throw new Error('Unsupported Cribl operation');
+    if (!processing && !/^\/(products\/stream\/workers\/restart|products\/stream\/groups(?:\/[a-zA-Z0-9_-]+\/deploy)?|master\/workers|m\/[a-zA-Z0-9_-]+\/(?:version(?:\/(?:status|commit))?|system\/inputs(?:\/[a-zA-Z0-9_-]+(?:\/hectoken)?)?))$/.test(route)) throw new Error('Unsupported Cribl operation');
     let used = await token();
     const send = auth => fetchImpl(new URL('/api/v1' + path, base).href, { method, headers: { Authorization: `Bearer ${auth.token}`, ...(body ? { 'Content-Type': 'application/json' } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}), signal: AbortSignal.timeout(10000), redirect: 'error' });
     let response = await send(used);
@@ -50,7 +52,7 @@ export function createCriblClient({ baseUrl, credentials, initialToken, fetchImp
       if (current === used) current = undefined;
       used = await token(); response = await send(used);
     }
-    if (!response.ok) throw new Error('Cribl request failed');
+    if (!response.ok) throw Object.assign(new Error('Cribl request failed'),{status:response.status});
     return response.json();
   }
   return { request, async sources(group) {

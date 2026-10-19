@@ -20,6 +20,6 @@ export function cloneJsonTemplate(template,{applicationName,barometerId}) {
 }
 export function applicationRoute(applicationName,pipelineId,policy) {
  if(pipelineId!==applicationPipelineId(applicationName))throw new Error('Pipeline reference mismatch');
- if(!['disabled-review','first-final'].includes(policy))throw new Error('Route placement policy must be approved');
- return {name:applicationName.trim(),pipeline:pipelineId,filter:'true',output:'devnull',disabled:policy==='disabled-review',final:policy==='first-final',description:'',enableOutputExpression:false,clones:[]};
+ if(!['disabled-review','first-final','before-default-final'].includes(policy))throw new Error('Route placement policy must be approved');
+ return {name:applicationName.trim(),pipeline:pipelineId,filter:'true',output:'devnull',disabled:policy==='disabled-review',final:policy!=='disabled-review',description:'',enableOutputExpression:false,clones:[]};
 }

@@ -85,3 +85,9 @@ test('source catalog includes disabled sources and excludes all secret configura
  assert.equal((await get('/source-catalog.json?group=not-approved')).status,503);
  assert.equal((await get('/source-catalog.json?group=bad%2Fgroup')).status,400);
 });
+test('JSON setup rejects invalid origin, identity and oversized bodies before writes',async()=>{
+ const headers={Origin:'http://127.0.0.1:4174','Content-Type':'application/json'};
+ assert.equal((await get('/api/json-setup','POST',{...headers,Origin:'http://other.example'},'{}')).status,403);
+ assert.equal((await get('/api/json-setup','POST',headers,'x'.repeat(4097))).status,400);
+ assert.equal((await get('/api/json-setup','POST',headers,'{}')).status,400);
+});
