@@ -96,3 +96,12 @@ npm --version
 
 The systemd service uses the private node executable directly. Do not run npm ci
 inside the installed application: its runtime dependencies are already bundled.
+
+## If setup previously reported only “Node.js 22 required”
+
+Update the clone with `git pull`, then use `sudo bash ./install.sh` from the root
+(the directory containing vendor/). The older deployment/rhel8/install.sh source
+entry point now redirects there automatically. Root installation stages the runtime
+under /opt rather than /tmp to accommodate enterprise noexec temporary mounts.
+A bundled binary that cannot execute no longer silently falls back to system Node.
+Runtime failures now identify the selected binary/version or show its loader error.

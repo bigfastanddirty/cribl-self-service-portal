@@ -3,6 +3,10 @@ set -euo pipefail
 mode=${1:---install}
 case "$mode" in --install|--check) ;; *) echo 'Usage: sudo ./install.sh [--install|--check]' >&2; exit 2;; esac
 bundle=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+# Redirect the old source-tree entry point to the self-contained installer.
+if [[ -f "$bundle/../../install.sh" && -f "$bundle/../../vendor/SHA256SUMS" ]]; then
+  exec bash "$bundle/../../install.sh" "$mode"
+fi
 fail() { echo "ERROR: $*" >&2; exit 1; }
 [[ -r /etc/os-release ]] || fail 'Cannot identify OS'
 source /etc/os-release
@@ -10,10 +14,20 @@ source /etc/os-release
 minor=${VERSION_ID#8.}; minor=${minor%%.*}
 [[ $minor =~ ^[0-9]+$ && $minor -ge 10 ]] || fail 'Update to RHEL 8.10 first'
 for cmd in install cp sha256sum systemctl getent useradd chown; do command -v "$cmd" >/dev/null || fail "Missing command: $cmd"; done
+# BEGIN runtime validation
 node_bin=/usr/bin/node
-if [[ -x "$bundle/app/runtime/bin/node" ]]; then node_bin="$bundle/app/runtime/bin/node"; fi
-[[ -x $node_bin ]] || fail 'Node.js 22 missing; use the top-level offline install.sh'
-"$node_bin" -e 'if(Number(process.versions.node.split(".")[0])!==22) process.exit(1)' || fail 'Node.js 22 is required; use the top-level offline install.sh'
+if [[ -f "$bundle/app/runtime/bin/node" ]]; then
+  node_bin="$bundle/app/runtime/bin/node"
+  [[ -x $node_bin ]] || fail "Bundled Node exists but cannot execute: $node_bin. Check execute permissions or a noexec mount. System Node will not be used."
+fi
+[[ -x $node_bin ]] || fail 'Node runtime missing. Run install.sh at the Git repository root, which includes vendor/.'
+if ! node_version=$("$node_bin" --version 2>&1); then
+  echo "$node_version" >&2
+  fail "Unable to execute $node_bin. Check OS libraries, architecture, and mount permissions."
+fi
+[[ $node_version == v22.* ]] || fail "Selected $node_bin reports $node_version, but Node 22 is required. Use install.sh at the repository root (the directory containing vendor/)."
+echo "Using Node $node_version from $node_bin"
+# END runtime validation
 (cd "$bundle" && sha256sum --check --quiet SHA256SUMS) || fail 'Bundle integrity check failed'
 [[ -f "$bundle/app/dist/index.html" && -f "$bundle/app/node_modules/nodemailer/package.json" ]] || fail 'Incomplete runtime bundle'
 if [[ $mode == --check ]]; then echo 'Prerequisites and bundle checks passed. No changes made.'; exit; fi

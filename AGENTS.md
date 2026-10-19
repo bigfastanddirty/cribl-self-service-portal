@@ -397,3 +397,12 @@ without replacing system Node/npm. Base RHEL OS libraries and administrative too
 remain prerequisites. Preserve fresh-install-only, explicit configuration before
 service start, no Worker restart mappings, and paused mail. Never include private
 credentials or journals. Native RHEL installation is still unverified.
+
+## Installer runtime-selection diagnostics (2026-10-19)
+
+The source-tree deployment installer redirects to the offline root installer.
+Root staging uses /opt rather than potentially noexec /tmp. If a bundled runtime
+exists but cannot execute, fail with its path instead of falling back to system
+Node 10. Preserve loader errors and report the selected Node version. Native RHEL
+verification is still required; these diagnostics must not claim its root cause
+has been established without target output.

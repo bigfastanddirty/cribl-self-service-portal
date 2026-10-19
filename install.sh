@@ -7,7 +7,14 @@ repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 for cmd in tar gzip sha256sum uname mktemp; do command -v "$cmd" >/dev/null || { echo "Missing base OS tool: $cmd" >&2; exit 1; }; done
 case $(uname -m) in x86_64) arch=x64;; aarch64|arm64) arch=arm64;; *) echo 'Supported CPUs: x86_64 and aarch64' >&2; exit 1;; esac
 (cd "$repo/vendor" && sha256sum --check --quiet SHA256SUMS)
-stage=$(mktemp -d)
+# Enterprise /tmp is often mounted noexec. Root installation stages on the same
+# filesystem as the installed runtime instead of silently using system Node.
+if [[ $EUID -eq 0 ]]; then
+  stage=$(mktemp -d /opt/.cribl-portal-stage.XXXXXX)
+else
+  [[ $mode == --check ]] || { echo 'Run this installer with sudo' >&2; exit 1; }
+  stage=$(mktemp -d)
+fi
 trap 'rm -rf "$stage"' EXIT
 tar -xzf "$repo/vendor/cribl-self-service-rhel8-0.1.0.tar.gz" -C "$stage"
 bundle="$stage/cribl-self-service-rhel8-0.1.0"
