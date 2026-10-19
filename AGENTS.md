@@ -493,3 +493,6 @@ of JSON processing. No new form controls or sample visibility changes are implie
 Route matching/destination/placement/naming remain unresolved and must block Route
 generation. Parse-failure retention and collisions require verification before use.
 See docs/json-pipeline-framework.md. Existing HEC action remains unchanged.
+
+The JSON proposal pipeline name is `pl_json`, per owner direction. This does not
+authorize overwriting an existing pipeline or applying the proposal.

@@ -29,9 +29,10 @@ function validIdentity(id:string,barometerIT:string):string {
 }
 export function planJsonPreview(input:{pipelineId:string;barometerIT:string}):ConfigurationPreview {
   const value=validIdentity(input.pipelineId,input.barometerIT);
+  if(input.pipelineId !== 'pl_json') throw new Error('JSON recipe pipeline must be named pl_json');
   return {
     version:1,mode:'preview-only',
-    pipeline:{version:1,recipe:'json-with-barometer-v1',id:input.pipelineId,actions:[{kind:'parse-json',sourceField:'_raw'},{kind:'set-literal',field:'BarometerIT',value},{kind:'remove-fields',fields:['_raw']}]},
+    pipeline:{version:1,recipe:'json-with-barometer-v1',id:'pl_json',actions:[{kind:'parse-json',sourceField:'_raw'},{kind:'set-literal',field:'BarometerIT',value},{kind:'remove-fields',fields:['_raw']}]},
     route:{status:'unresolved',missing:['Approved event matching rule','Destination reference','Route placement and stop-after-match policy','Resource naming and collision policy']},
     summary:['Extract fields from JSON in the original log message.',`Set BarometerIT to ${value}.`,'Remove the original log message after the processing steps.','Propose a pipeline only; no Cribl configuration is changed.'],
     limitations:['JSON processing is an explicitly selected recipe, not inferred from the collection source.','Malformed JSON, field collisions, and raw-message removal on parse failure require runtime verification before deployment.','The default output and 1,000 ms timeout reproduce the supplied example; they are not approved routing policy.','Route generation is blocked until matching, destination, placement, and naming policies are defined.'],

@@ -2,10 +2,13 @@ import {describe,it,expect} from 'vitest';
 import {planJsonPreview,generatePipeline} from './configuration-preview';
 describe('JSON configuration proposal',()=>{
  it('matches the supplied JSON pipeline structure',()=>{
-  const plan=planJsonPreview({pipelineId:'pl_test_json',barometerIT:'sdffsesdfsdf'});
-  expect(generatePipeline(plan.pipeline)).toEqual({id:'pl_test_json',conf:{output:'default',streamtags:[],groups:{},asyncFuncTimeout:1000,functions:[{filter:'true',conf:{mode:'extract',type:'json',srcField:'_raw',remove:[]},id:'serde'},{filter:'true',conf:{printUndefineds:false,add:[{disabled:false,name:'BarometerIT',value:'"sdffsesdfsdf"'}],keep:[],remove:['_raw']},id:'eval'}],description:''}});
+  const plan=planJsonPreview({pipelineId:'pl_json',barometerIT:'sdffsesdfsdf'});
+  expect(generatePipeline(plan.pipeline)).toEqual({id:'pl_json',conf:{output:'default',streamtags:[],groups:{},asyncFuncTimeout:1000,functions:[{filter:'true',conf:{mode:'extract',type:'json',srcField:'_raw',remove:[]},id:'serde'},{filter:'true',conf:{printUndefineds:false,add:[{disabled:false,name:'BarometerIT',value:'"sdffsesdfsdf"'}],keep:[],remove:['_raw']},id:'eval'}],description:''}});
   expect(plan.route.status).toBe('unresolved');
   expect(plan.route.missing).toContain('Approved event matching rule');
+ });
+ it('uses the approved pipeline name pl_json',()=>{
+  expect(()=>planJsonPreview({pipelineId:'other_name',barometerIT:'BAR-1'})).toThrow('must be named pl_json');
  });
  it('encodes customer text as a literal, including quotes and backslashes',()=>{
   const input=`a'"\\; (()=>evil())()`;

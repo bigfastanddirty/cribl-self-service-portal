@@ -23,9 +23,10 @@ reject blank/control characters, maximum 128 characters. JavaScript string-liter
 encoding uses JSON quoting, with Unicode line separators escaped; quotes and
 backslashes cannot turn customer input into executable expression source.
 
-The caller supplies an internal proposed pipeline ID (letters, digits, underscore,
-hyphen, maximum 128). This is a portal constraint, not a claim about all legal Cribl
-names. Automated identity allocation and collision handling remain unresolved.
+The proposed pipeline uses the owner-approved fixed name `pl_json`. The internal
+caller must supply this approved name; other names are rejected. Collision
+handling for an existing `pl_json` remains unresolved; generation does not authorize
+overwriting it.
 The generated envelope reproduces the user's example: output `default`, empty
 streamtags/groups, 1,000 ms async timeout, and empty description. Single vs double
 quotes around the literal value differ syntactically but represent the same string.
