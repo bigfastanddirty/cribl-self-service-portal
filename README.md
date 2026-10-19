@@ -20,6 +20,31 @@ This remains a development prototype. Customer authentication, production HTTPS
 origin handling, deployment coordination, and token lifecycle policy remain open.
 See [project instructions](AGENTS.md) for scope and mutation boundaries.
 
+## Install on RHEL without installing Node/npm manually
+
+The repository includes the built application, Nodemailer, and private Node.js 22
+runtimes with matching npm for x86_64 and ARM64. Download the source ZIP or clone
+this repository, then run:
+
+```bash
+cd cribl-self-service-portal
+sudo bash ./install.sh
+```
+
+No npm install, npm ci, dnf operation, or Internet access is required during setup.
+Your existing system Node 10/npm 6 are left unchanged. Base RHEL tools/libraries
+are still required; see [requirements](deployment/rhel8/REQUIREMENTS.md).
+Installation is fresh-only. It leaves the service stopped until you configure the
+Leader URL and private credentials in `/etc/cribl-self-service`. Then start it:
+
+```bash
+sudo systemctl enable --now cribl-self-service
+```
+
+See the [installation guide](deployment/rhel8/INSTALL.md) and
+[bundled runtime notes](vendor/README.md). Native RHEL installation remains unverified;
+offline archive checks and the extracted runtime are tested on Ubuntu.
+
 ## Develop
 
 ```bash

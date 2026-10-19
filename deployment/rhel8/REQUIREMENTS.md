@@ -3,28 +3,26 @@
 ## Required on the target
 
 - RHEL 8.10, maintained with current security updates; systemd and SELinux supported.
-- Node.js **22.x** at `/usr/bin/node`. The installer checks the major version.
+- Bundled Node.js **22.22.1** and matching npm are supplied in Git for x86_64 and
+  ARM64. The top-level installer uses a private runtime; system Node/npm can remain
+  unchanged. Base RHEL glibc and libraries must support the official Node 22 binary.
 - Root/sudo for installation; a dedicated `cribl-portal` account runs the application.
 - Bash, tar, gzip, coreutils (install/cp/chown/sha256sum), shadow-utils (useradd),
   and systemd. No npm, compiler, Python, browser, or Cribl installation is required
   on the portal host. The bundled runtime dependency is pure JavaScript.
-- Recommended initial allocation: 1 CPU, 512 MB RAM, 250 MB free disk plus retained
+- Recommended initial allocation: 1 CPU, 512 MB RAM, 1 GB free disk (including runtime and installer temporary extraction) plus retained
   provisioning state and OS logs. This is a starting estimate, not a load-tested sizing claim.
 - A browser supporting native dialog, fetch, and Web Crypto.
 
-On a registered RHEL host with BaseOS/AppStream enabled:
+Use `sudo bash ./install.sh` at the repository root for offline installation. This
+path needs no company Node/npm package, npm registry access, compiler, or build tools.
+Bash, GNU tar with gzip, coreutils, shadow-utils, systemd, and their normal RHEL system
+libraries are OS prerequisites. Runtime archives include npm, but no npm dependency
+installation runs during setup. Do not use system Node 10 to build/run this project.
 
-```bash
-sudo dnf module list nodejs
-sudo dnf module install nodejs:22
-sudo dnf install tar gzip coreutils shadow-utils
-node --version
-```
-
-If another Node.js module stream is active, review its consumers before switching;
-this installer does not reset module streams or replace system Node.js automatically.
-An offline host needs the Node.js/system RPMs supplied through approved media or
-an internal repository. Application installation itself requires no Internet access.
+The standalone application-only archive is also retained for administrators who
+already have Node.js 22 at `/usr/bin/node`; use its internal install.sh only for that
+path. It does not contain the separate runtime archives from the Git repository.
 
 ## Integration and network requirements
 

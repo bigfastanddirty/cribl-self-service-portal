@@ -384,3 +384,16 @@ until the target administrator configures the Leader URL and credentials. HEC
 mapping starts empty, mail stays paused, and no Worker restart mapping is included.
 Documentation must distinguish packaging/smoke checks on Ubuntu from a native RHEL
 installation, and retain the existing prototype's production integration limits.
+
+## Offline Git installation with bundled runtimes (2026-10-19)
+
+The owner authorized committing all application dependencies and Node.js/npm runtimes
+into Git, with one top-level installer, because company packages provide only Node 10
+and npm 6. Bundle official Node.js 22.22.1 distributions for x86_64 and ARM64 with their
+licenses and verified upstream checksums, plus the built application and Nodemailer.
+Do not use Git LFS pointers or require dependency downloads during installation.
+The installer selects architecture, validates checksums, and uses a private runtime
+without replacing system Node/npm. Base RHEL OS libraries and administrative tools
+remain prerequisites. Preserve fresh-install-only, explicit configuration before
+service start, no Worker restart mappings, and paused mail. Never include private
+credentials or journals. Native RHEL installation is still unverified.

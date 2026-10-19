@@ -9,8 +9,11 @@ source /etc/os-release
 [[ ${ID:-} == rhel && ${VERSION_ID:-} == 8.* ]] || fail 'This installer targets RHEL 8.10 with Node.js 22'
 minor=${VERSION_ID#8.}; minor=${minor%%.*}
 [[ $minor =~ ^[0-9]+$ && $minor -ge 10 ]] || fail 'Update to RHEL 8.10 first'
-for cmd in node install cp sha256sum systemctl getent useradd chown; do command -v "$cmd" >/dev/null || fail "Missing command: $cmd"; done
-node -e 'if(Number(process.versions.node.split(".")[0])!==22) process.exit(1)' || fail 'Install the nodejs:22 stream (see REQUIREMENTS.md)'
+for cmd in install cp sha256sum systemctl getent useradd chown; do command -v "$cmd" >/dev/null || fail "Missing command: $cmd"; done
+node_bin=/usr/bin/node
+if [[ -x "$bundle/app/runtime/bin/node" ]]; then node_bin="$bundle/app/runtime/bin/node"; fi
+[[ -x $node_bin ]] || fail 'Node.js 22 missing; use the top-level offline install.sh'
+"$node_bin" -e 'if(Number(process.versions.node.split(".")[0])!==22) process.exit(1)' || fail 'Node.js 22 is required; use the top-level offline install.sh'
 (cd "$bundle" && sha256sum --check --quiet SHA256SUMS) || fail 'Bundle integrity check failed'
 [[ -f "$bundle/app/dist/index.html" && -f "$bundle/app/node_modules/nodemailer/package.json" ]] || fail 'Incomplete runtime bundle'
 if [[ $mode == --check ]]; then echo 'Prerequisites and bundle checks passed. No changes made.'; exit; fi
@@ -29,6 +32,10 @@ install -o root -g cribl-portal -m 0640 "$bundle/config/hec-targets.json.example
 install -o root -g root -m 0600 "$bundle/config/smtp.json.example" /etc/cribl-self-service/smtp.json.example
 install -d -o cribl-portal -g cribl-portal -m 0700 /var/lib/cribl-self-service /var/lib/cribl-self-service/hec-requests /var/lib/cribl-self-service/notifications
 install -o root -g root -m 0644 "$bundle/cribl-self-service.service" /etc/systemd/system/cribl-self-service.service
+if [[ -x /opt/cribl-self-service/runtime/bin/node ]]; then
+  sed -i 's|ExecStart=/usr/bin/node |ExecStart=/opt/cribl-self-service/runtime/bin/node |' /etc/systemd/system/cribl-self-service.service
+  sed -i '/^ExecStart=/a Environment=PATH=/opt/cribl-self-service/runtime/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin' /etc/systemd/system/cribl-self-service.service
+fi
 if command -v restorecon >/dev/null; then restorecon -R /opt/cribl-self-service /etc/cribl-self-service /var/lib/cribl-self-service /etc/systemd/system/cribl-self-service.service; fi
 systemctl daemon-reload
 echo 'Installed. Service has NOT been started or enabled.'

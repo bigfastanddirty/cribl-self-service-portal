@@ -1,5 +1,12 @@
 # Install the Cribl Self-Service Portal on RHEL 8
 
+For the simplest installation from a Git clone or GitHub ZIP, run **the top-level
+`sudo bash ./install.sh`**. It includes and selects a private Node.js/npm runtime,
+so existing system Node 10/npm 6 do not matter. No downloads or npm install are
+performed. Afterward continue at step 2 below. Supports x86_64 and ARM64 RHEL 8.10.
+
+The alternative application-only archive workflow below requires system Node.js 22:
+
 1. Install the prerequisites listed in REQUIREMENTS.md. Copy the archive to the
    RHEL box, then extract and install:
 
@@ -76,3 +83,16 @@ credentials. Retain private state until an administrator reviews token ownership
 The bundle includes built assets, backend modules, Nodemailer, configuration examples,
 SHA-256 checksums, requirements, and this guide. It excludes all development credentials,
 request journals, source samples, build tools, and VM-specific endpoint mappings.
+
+## Using the bundled Node/npm tools
+
+The system `node` command remains unchanged. To use the private runtime in a shell:
+
+```bash
+export PATH=/opt/cribl-self-service/runtime/bin:$PATH
+node --version
+npm --version
+```
+
+The systemd service uses the private node executable directly. Do not run npm ci
+inside the installed application: its runtime dependencies are already bundled.
