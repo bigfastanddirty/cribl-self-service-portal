@@ -1,3 +1,4 @@
+import { discoveredHecTarget } from './hec-discovery.mjs';
 import { randomUUID } from 'node:crypto';
 import { diagnosticCode } from './diagnostics.mjs';
 import { applicationPipelineId } from './json-clone.mjs';
@@ -16,14 +17,23 @@ let initialToken;
 if (process.env.CRIBL_TOKEN_FILE) { try { initialToken = (await readFile(process.env.CRIBL_TOKEN_FILE, 'utf8')).trim(); } catch {} }
 const cribl = createCriblClient({ baseUrl: process.env.CRIBL_URL || 'http://127.0.0.1:9000', initialToken: process.env.CRIBL_API_TOKEN || initialToken, credentials: () => privateCredentials(process.env.CRIBL_CREDENTIALS_FILE) });
 let hec;
-let hecTargets = {};
-if (process.env.HEC_TARGETS_FILE && process.env.HEC_STATE_DIR) {
-  const targets = hecTargets = JSON.parse(await readFile(process.env.HEC_TARGETS_FILE, 'utf8'));
-  hec = createHecService({ targets, request: cribl.request, store: fileStore(process.env.HEC_STATE_DIR) });
-}
+const hecTargets = Object.assign(Object.create(null),process.env.HEC_TARGETS_FILE ? JSON.parse(await readFile(process.env.HEC_TARGETS_FILE,'utf8')) : {});
+const configuredHecTargets = structuredClone(hecTargets);
+const ingestionHostname = process.env.HEC_INGESTION_HOST || 'hec.allstate.com';
+if (process.env.HEC_STATE_DIR) hec = createHecService({targets:hecTargets,request:cribl.request,store:fileStore(process.env.HEC_STATE_DIR)});
 async function sourceChoices(group) {
   if (!(await cribl.workerGroups()).some(g => g.key === group)) throw new Error('Location unavailable');
-  return sourceTypeChoices(await cribl.sources(group), hecTargets[group]);
+  const sources=await cribl.sources(group);
+  if(!Object.hasOwn(configuredHecTargets,group)) {
+    const candidates=sources.filter(s=>s.type==='splunk_hec');
+    let target;
+    if(candidates.length===1 && /^[A-Za-z0-9_-]+$/.test(candidates[0].key)) {
+      const source=(await cribl.request('/m/'+group+'/system/inputs/'+candidates[0].key)).items?.[0];
+      target=discoveredHecTarget(sources,source,ingestionHostname);
+    }
+    if(target)hecTargets[group]=target;else delete hecTargets[group];
+  }
+  return sourceTypeChoices(sources, hecTargets[group]);
 }
 const jsonState = process.env.JSON_SETUP_STATE_DIR || (process.env.HEC_STATE_DIR ? path.join(process.env.HEC_STATE_DIR,'..','json-requests') : undefined);
 const jsonSetup = jsonState ? createJsonSetupService({request:cribl.request,store:fileStore(jsonState)}) : undefined;
@@ -99,8 +109,9 @@ const server = http.createServer(async (req, res) => {
       let data = '', bytes = 0;
       for await (const chunk of req) { bytes += chunk.length; if (bytes > 4096) throw new Error(); data += chunk.toString('utf8'); }
       input = JSON.parse(data);
-      if (!input || typeof input.group !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(input.group) || !validRequestId(input.requestId) || input.source !== hecTargets[input.group]?.source || typeof input.source !== 'string' || typeof input.barometerId !== 'string' || !input.barometerId.trim() || input.barometerId.trim().length > 128 || /[\x00-\x1f\x7f]/.test(input.barometerId) || Object.keys(input).some(key => !['group', 'requestId', 'barometerId', 'source'].includes(key))) throw new Error();
+      if (!input || typeof input.group !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(input.group) || !validRequestId(input.requestId) || typeof input.source !== 'string' || typeof input.barometerId !== 'string' || !input.barometerId.trim() || input.barometerId.trim().length > 128 || /[\x00-\x1f\x7f]/.test(input.barometerId) || Object.keys(input).some(key => !['group', 'requestId', 'barometerId', 'source'].includes(key))) throw new Error();
     } catch { json(400, { message: 'Invalid credential request.' }); return; }
+    try {const choices=await sourceChoices(input.group);if(!choices.some(s=>s.key===input.source && s.provisioning==='hec')){diagnostic('HEC_TARGET_UNAVAILABLE');json(400,{message:'No unambiguous approved HEC target is available.'});return;}}catch(failure){diagnostic(diagnosticCode(failure));json(503,{message:'HEC source discovery failed.'});return;}
     if (!hec) { diagnostic('HEC_TARGET_UNAVAILABLE');json(503, { message: 'HEC setup is unavailable for this location.' }); return; }
     let replied = false;
     const reply = (status, data) => { if (!replied) { replied = true; json(status, data); } };

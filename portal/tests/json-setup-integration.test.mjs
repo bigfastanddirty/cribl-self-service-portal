@@ -6,7 +6,7 @@ test('HTTP setup validates completed HEC and writes only pipeline and routing dr
  const hecId='22222222-2222-4222-8222-222222222222',requestId='11111111-1111-4111-8111-111111111111';
  await mkdir(path.join(dir,'hec'),{mode:0o700});
  await writeFile(path.join(dir,'hec',hecId+'.json'),JSON.stringify({group:'default',complete:true}),{mode:0o600});
- await writeFile(path.join(dir,'targets.json'),JSON.stringify({default:{source:'in_hec',endpoint:'http://localhost:8088/services/collector'}}),{mode:0o600});
+ await writeFile(path.join(dir,'targets.json'),JSON.stringify({}),{mode:0o600});
  const pipelines=new Map([['pl_json',{id:'pl_json',conf:{functions:[{id:'eval',conf:{add:[{name:'BarometerIT',value:'"template"'}]}}]}}]]);
  let table={id:'default',routes:[{id:'default',name:'default',filter:'true',final:true,output:'default',pipeline:'main'}]};const writes=[];
  const upstream=createServer(async(req,res)=>{
@@ -15,6 +15,7 @@ test('HTTP setup validates completed HEC and writes only pipeline and routing dr
   if(req.method!=='GET')writes.push([req.method,route]);
   if(route==='/products/stream/groups')items=[{id:'default',name:'Default'}];
   else if(route.startsWith('/m/default/system/inputs?'))items=[{id:'in_hec',type:'splunk_hec',disabled:false}];
+  else if(route==='/m/default/system/inputs/in_hec')items=[{id:'in_hec',type:'splunk_hec',port:8088,splunkHecAPI:'/services/collector',disabled:false,authTokens:[{token:'not-for-browser'}]}];
   else if(route==='/m/default/pipelines' && req.method==='POST'){const p=JSON.parse(body);pipelines.set(p.id,p);items=[p];}
   else if(route.startsWith('/m/default/pipelines/')){const p=pipelines.get(route.split('/').at(-1));if(!p){res.writeHead(404,{'content-type':'application/json'});res.end('{}');return;}items=[p];}
   else if(route==='/m/default/routes/default'){if(req.method==='PATCH')table=JSON.parse(body);items=[table];}
@@ -27,6 +28,7 @@ test('HTTP setup validates completed HEC and writes only pipeline and routing dr
   const payload={requestId,hecRequestId:hecId,group:'default',source:'in_hec',applicationName:'Akamai Audit',barometerId:'BAR-1',email:'requester@example.com',dailyVolume:{value:'1',unit:'GB'}};
   const send=data=>fetch('http://127.0.0.1:4181/api/json-setup',{method:'POST',headers:{origin:'http://127.0.0.1:4181','content-type':'application/json'},body:JSON.stringify(data)});
   assert.equal((await send({...payload,source:'not-approved'})).status,400);assert.equal(writes.length,0);
+  const catalog=await fetch('http://127.0.0.1:4181/source-catalog.json?group=default');const catalogText=await catalog.text();assert.equal(JSON.parse(catalogText).collectionMethods.find(s=>s.key==='in_hec').provisioning,'hec');assert.doesNotMatch(catalogText,/not-for-browser|authTokens|splunkHecAPI/);
   const response=await send(payload);assert.equal(response.status,200);assert.equal((await response.json()).deployed,false);
   assert.deepEqual(writes,[['POST','/m/default/pipelines'],['PATCH','/m/default/routes/default']]);
   assert.equal(table.routes[0].name,'Akamai Audit');assert.equal(table.routes[1].id,'default');

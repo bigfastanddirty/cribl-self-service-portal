@@ -343,3 +343,16 @@ its token through the existing provisioning flow. Mapping and endpoint validatio
 healthy Worker checks, pending-change guards, existing token preservation and no
 Worker restarts remain in force. Unmapped/other Sources remain summary-only. This
 does not create an unconfigured source type or invent its required settings.
+
+### Automatic HEC target discovery
+
+An empty `hec-targets.json` now permits automatic discovery when the selected group
+has exactly one configured Splunk HEC source. The server reads that source's port,
+path and TLS mode and uses `hec.allstate.com` as the default ingestion hostname.
+Set `HEC_INGESTION_HOST` to override the hostname; explicit private group mappings
+still take precedence. Disabled discovered HEC sources use the approved enable-on-
+Submit flow. Multiple sources or invalid listener settings remain summary-only and
+require administrator mapping. No listener configuration, tokens or credentials
+are exposed in source-catalog responses. The hostname is a configured VIP assumption,
+not discovered network topology; verify DNS, routing and matching external port/TLS
+settings from the deployment host.

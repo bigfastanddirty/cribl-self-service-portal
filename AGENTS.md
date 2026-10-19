@@ -548,3 +548,17 @@ Persist an enable-intent digest privately before PATCH to reconcile retries. Oth
 sources remain summary-only until their setup requirements are defined. Merely
 selecting a source does not enable it. No source creation or unrelated edits follow
 from this iteration.
+
+## Automatic HEC target discovery and default hostname (2026-10-19)
+
+The owner approved hec.allstate.com as the current ingestion hostname. Discover the
+selected group's unique configured Splunk HEC source, including a disabled instance,
+and read its port, splunkHecAPI path and explicit TLS settings server-side. Compose
+the target using HEC_INGESTION_HOST (default hec.allstate.com). Existing explicit
+private group mappings override discovery. Empty mappings no longer force a unique
+valid HEC source into summary-only behavior. Multiple HEC sources, absent listeners
+or invalid metadata remain blocked; do not invent a source or silently select one.
+Refresh discovery on submission, not only initial catalog load. Return no raw source
+metadata or credentials to the browser. Existing enable/token/deployment guards and
+no-restart restrictions remain unchanged. The external VIP's reachability and port
+forwarding still require target-environment verification.
