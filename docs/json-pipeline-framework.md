@@ -62,3 +62,31 @@ HEC selection nor a JSON-looking sample silently authorizes this recipe or a wri
 
 Verification covers the supplied shape, deterministic generation, validation, and
 literal quoting. It does not establish runtime behavior in Cribl.
+
+## Owner-directed template cloning (2026-10-19)
+
+The workflow now collects a required Application / log name after BarometerIT,
+up to 100 characters with no ASCII controls. It appears in the request summary
+and notification payload. The draft clone builder (`portal/json-clone.mjs`) reads
+an owner-maintained `pl_json` template, deep-clones its configuration, and changes
+only its identity and exactly one active Eval BarometerIT assignment. Missing or
+ambiguous assignments block cloning. The template itself is never edited.
+
+Example: `Akamai Audit` maps to `pl_Akamai_Audit` (spaces/punctuation become
+underscores; ASCII letters, digits, underscores and hyphens remain). Names that
+normalize to the same identifier must be treated as collisions, never overwritten.
+The reserved template name cannot be reused as a clone name.
+
+The proposed Route name is the entered application name, its pipeline is the new
+clone, filter is `true`, and output is `devnull`. No HEC-specific match expression
+is inferred: `true` matches all events reaching the Route. Route placement and
+Stop After Match must be explicitly approved before any Route write. The builder
+requires an explicit policy and does not infer one.
+
+Local read-only assessment found `pl_json` missing in Default (HTTP 404), and a
+final enabled default Route with filter `true`. Appending an enabled Route after
+it would be unreachable; inserting a final catch-all before it would redirect all
+traffic to devnull. These block live creation. The clone builder is not connected
+to Submit yet; existing HEC behavior is unchanged. No new pipeline, Route, commit,
+deployment, or Worker restart was performed. The pending placement decision and
+owner-supplied template are needed before enabling this submission integration.

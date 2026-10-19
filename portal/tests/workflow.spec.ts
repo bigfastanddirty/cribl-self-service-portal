@@ -3,7 +3,7 @@ const catalog={version:1,provenance:'Test choices',workerGroups:[{key:'default',
 test.beforeEach(async({page})=>{await page.route('**/source-catalog.json?*',r=>r.fulfill({json:{collectionMethods:[{key:'hec',label:'HEC',provisioning:'hec'},{key:'api',label:'API',provisioning:'summary'},{key:'other',label:'Other',disabled:true,provisioning:'summary'}]}}));await page.route('**/catalog.json',r=>r.fulfill({json:catalog}));await page.route('**/api/summary',r=>r.fulfill({json:{status:'sent'}}));});
 async function complete(page:import('@playwright/test').Page,method='hec') {
  await page.locator('#requester-email').fill('requester@example.com');
- await page.locator('#barometer-id').fill('BAR-12345');
+ await page.locator('#application-name').fill('Akamai Audit');await page.locator('#barometer-id').fill('BAR-12345');
  await page.locator('#worker-group').selectOption('default');
  await expect(page.locator('#collection-method')).toBeEnabled();
  await page.locator('#collection-method').selectOption(method);
@@ -11,11 +11,11 @@ async function complete(page:import('@playwright/test').Page,method='hec') {
 }
 test('required fields are marked and sample step is hidden',async({page})=>{
  await page.goto('/');
- await expect(page.locator('.question:visible')).toHaveCount(5);
+ await expect(page.locator('.question:visible')).toHaveCount(6);
  await expect(page.locator('#sample')).toBeHidden();
  await expect(page.locator('#create-hec')).toHaveCount(0);
- for(const id of ['requester-email','barometer-id','worker-group','collection-method','daily-volume','volume-unit'])await expect(page.locator('#'+id)).toHaveAttribute('required','');
- await expect(page.locator('.required-label:visible')).toHaveCount(6);
+ for(const id of ['requester-email','application-name','barometer-id','worker-group','collection-method','daily-volume','volume-unit'])await expect(page.locator('#'+id)).toHaveAttribute('required','');
+ await expect(page.locator('.required-label:visible')).toHaveCount(7);
 });
 test('invalid submissions do not create tokens',async({page})=>{
  let calls=0;await page.route('**/api/hec',r=>{calls++;return r.fulfill({json:{}});});
@@ -124,18 +124,18 @@ test('shows a newly created token while deployment is pending and updates readin
 });
 test('BarometerIT is required, included in the summary, and cleared on reset',async({page})=>{
  let posts=0;await page.route('**/api/summary',r=>{posts++;expect(r.request().postDataJSON().barometerId).toBe('BAR-12345');return r.fulfill({json:{status:'sent'}});});
- await page.goto('/');await complete(page,'api');await page.locator('#barometer-id').fill('   ');
+ await page.goto('/');await complete(page,'api');await page.locator('#application-name').fill('Akamai Audit');await page.locator('#barometer-id').fill('   ');
  await page.getByRole('button',{name:'Submit request'}).click();await expect(page.locator('#barometerId-error')).not.toBeEmpty();expect(posts).toBe(0);
- await page.locator('#barometer-id').fill('BAR-12345');await page.getByRole('button',{name:'Submit request'}).click();
+ await page.locator('#application-name').fill('Akamai Audit');await page.locator('#barometer-id').fill('BAR-12345');await page.getByRole('button',{name:'Submit request'}).click();
  await expect(page.locator('#review-barometer-id')).toHaveText('BAR-12345');await expect.poll(()=>posts).toBe(1);
- await page.locator('#barometer-id').fill('BAR-54321');await expect(page.locator('#preview-result')).toBeHidden();
+ await page.locator('#application-name').fill('Akamai Audit');await page.locator('#barometer-id').fill('BAR-54321');await expect(page.locator('#preview-result')).toBeHidden();
  await page.getByRole('button',{name:'Clear request'}).click();await expect(page.locator('#barometer-id')).toHaveValue('');
 });
 test('includes disabled configured sources and keeps the existing question label',async({page})=>{
  const writes:string[]=[];
  await page.route('**/api/hec',r=>{writes.push('hec');return r.fulfill({status:500});});
  await page.route('**/source-catalog.json?*',r=>r.fulfill({json:{collectionMethods:[{key:'disabled-hec',label:'Splunk HEC',disabled:true,provisioning:'summary'},{key:'syslog-listener',label:'Syslog',disabled:false,provisioning:'summary'}]}}));
- await page.goto('/');await page.locator('#requester-email').fill('requester@example.com');await page.locator('#barometer-id').fill('BAR-1');await page.locator('#worker-group').selectOption('default');
+ await page.goto('/');await page.locator('#requester-email').fill('requester@example.com');await page.locator('#application-name').fill('Akamai Audit');await page.locator('#barometer-id').fill('BAR-1');await page.locator('#worker-group').selectOption('default');
  await expect(page.locator('label[for=collection-method]')).toContainText('What methods are available to collect your logs?');
  await expect(page.locator('#collection-method option')).toHaveCount(3);await page.locator('#collection-method').selectOption('disabled-hec');await page.locator('#daily-volume').fill('1');
  await page.getByRole('button',{name:'Submit request'}).click();await expect(page.locator('#review-method')).toHaveText('Splunk HEC');expect(writes).toEqual([]);
@@ -165,4 +165,9 @@ test('source descriptions appear as tooltips and accessible selected help',async
  await expect(page.locator('#source-description')).toHaveText('Read events from Kafka topics.');
  await page.locator('#worker-group').selectOption('');
  await expect(page.locator('#source-description')).toBeEmpty();
+});
+test('application name is required and appears in the request summary',async({page})=>{
+ await page.goto('/');await complete(page,'api');await page.locator('#application-name').fill(' ');
+ await page.getByRole('button',{name:'Submit request'}).click();await expect(page.locator('#applicationName-error')).toContainText('Enter an application');
+ await page.locator('#application-name').fill('Akamai Audit');await page.getByRole('button',{name:'Submit request'}).click();await expect(page.locator('#review-application-name')).toHaveText('Akamai Audit');
 });

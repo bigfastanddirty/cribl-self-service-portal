@@ -1,8 +1,8 @@
 export interface CatalogEntry { key: string; label: string; description?: string; disabled?: boolean; provisioning?: 'hec' | 'summary' }
 export interface Catalog { version: number; provenance: string; workerGroups: CatalogEntry[]; collectionMethods: CatalogEntry[] }
 export interface SampleInfo { name: string; size: number; type: string }
-export interface Draft { barometerId?: string; email?: string; group: string; method: string; sample?: SampleInfo; dailyVolume?: {value:string; unit:string}; logTypeOverride?: string }
-export type Errors = Partial<Record<'barometerId' | 'email' | 'group' | 'sample' | 'method' | 'volume' | 'override', string>>;
+export interface Draft { applicationName?: string; barometerId?: string; email?: string; group: string; method: string; sample?: SampleInfo; dailyVolume?: {value:string; unit:string}; logTypeOverride?: string }
+export type Errors = Partial<Record<'applicationName' | 'barometerId' | 'email' | 'group' | 'sample' | 'method' | 'volume' | 'override', string>>;
 export const MAX_SAMPLE_BYTES = 1_000_000;
 export function validateSample(sample: SampleInfo): string | undefined {
   if (sample.size === 0) return 'This sample is empty. Choose a file with some log content.';

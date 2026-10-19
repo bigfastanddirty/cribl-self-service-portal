@@ -12,6 +12,7 @@ function element<T extends HTMLElement>(id: string): T {
 }
 const form = element<HTMLFormElement>('request-form');
 const barometerId = element<HTMLInputElement>('barometer-id');
+const applicationName = element<HTMLInputElement>('application-name');
 const email = element<HTMLInputElement>('requester-email');
 const summarySender = createSummarySender();
 let submitting = false;
@@ -29,13 +30,13 @@ let selectedFile: File | undefined;
 let finding: LogFinding | undefined;
 let analysisVersion = 0;
 let attemptedReview = false;
-const fields = { email, barometerId, group, sample: sampleInput, method, volume, override };
+const fields = { applicationName, email, barometerId, group, sample: sampleInput, method, volume, override };
 
 function draft(): Draft {
-  return { barometerId:barometerId.value.trim(), email: email.value.trim(), group: group.value, method: method.value, dailyVolume: {value:volume.value,unit:volumeUnit.value}, logTypeOverride: override.value, sample: selectedFile ? { name: selectedFile.name, size: selectedFile.size, type: selectedFile.type } : undefined };
+  return { applicationName:applicationName.value.trim(), barometerId:barometerId.value.trim(), email: email.value.trim(), group: group.value, method: method.value, dailyVolume: {value:volume.value,unit:volumeUnit.value}, logTypeOverride: override.value, sample: selectedFile ? { name: selectedFile.name, size: selectedFile.size, type: selectedFile.type } : undefined };
 }
 function showErrors(errors: Errors): void {
-  for (const key of ['email', 'barometerId', 'group', 'method', 'volume', 'sample', 'override'] as const) {
+  for (const key of ['email', 'applicationName', 'barometerId', 'group', 'method', 'volume', 'sample', 'override'] as const) {
     element(`${key}-error`).textContent = errors[key] || '';
     fields[key].setAttribute('aria-invalid', errors[key] ? 'true' : 'false');
     if (key === 'volume') volumeUnit.setAttribute('aria-invalid', errors[key] ? 'true' : 'false');
@@ -149,6 +150,7 @@ document.addEventListener('dragend', endDrag);
 element('remove-sample').addEventListener('click', () => {
   clearSample(); invalidatePreview(); sampleInput.focus();
 });
+applicationName.addEventListener('input', invalidatePreview);
 email.addEventListener('input', invalidatePreview);
 barometerId.addEventListener('input', invalidatePreview);
 group.addEventListener('change', invalidatePreview);
@@ -158,7 +160,7 @@ override.addEventListener('change', invalidatePreview);
 volumeUnit.addEventListener('change', () => { volume.min = volumeUnit.value === 'TB' ? '0.001' : '1'; invalidatePreview(); });
 form.addEventListener('reset', () => {
   resetSources();
-  attemptedReview = false; email.value = ''; barometerId.value = ''; summarySender.reset();
+  attemptedReview = false; applicationName.value = ''; email.value = ''; barometerId.value = ''; summarySender.reset();
   group.value = ''; method.value = ''; volume.value = ''; volumeUnit.value = 'GB'; volume.min = '1';
   clearSample(); showErrors({}); invalidatePreview();
   element('announcement').textContent = 'Request cleared. The selected sample has been removed.';
@@ -168,14 +170,16 @@ form.addEventListener('submit', async event => {
   if (!catalog || hec.busy() || submitting) return;
   attemptedReview = true;
   const errors = validateDraft(draft(), catalog, false);
+  if (!applicationName.value.trim() || applicationName.value.trim().length > 100 || /[\x00-\x1f\x7f]/.test(applicationName.value)) errors.applicationName = 'Enter an application / log name (up to 100 characters).';
   showErrors(errors);
-  const firstError = (['email', 'barometerId', 'group', 'method', 'volume', 'sample', 'override'] as const).find(key => errors[key]);
+  const firstError = (['email', 'applicationName', 'barometerId', 'group', 'method', 'volume', 'sample', 'override'] as const).find(key => errors[key]);
   if (firstError) {
     element('preview-result').hidden = true;
     element('preview-empty').hidden = false;
     element('announcement').textContent = 'Please complete the highlighted questions.';
     fields[firstError].focus(); return;
   }
+  element('review-application-name').textContent = applicationName.value.trim();
   element('review-barometer-id').textContent = barometerId.value.trim();
   element('review-email').textContent = email.value.trim();
   element('review-group').textContent = catalog.workerGroups.find(e => e.key === group.value)!.label;
@@ -197,7 +201,7 @@ form.addEventListener('submit', async event => {
     const provisionsHec = catalog.collectionMethods.find(e => e.key === method.value)?.provisioning === 'hec';
     const hecRequestId = provisionsHec ? await hec.submit() : undefined;
     if (provisionsHec && !hecRequestId) return;
-    await summarySender.send({barometerId:barometerId.value.trim(),email:email.value.trim(),group:group.value,method:method.value,dailyVolume:{value:volume.value,unit:volumeUnit.value},...(hecRequestId ? {hecRequestId} : {})});
+    await summarySender.send({applicationName:applicationName.value.trim(),barometerId:barometerId.value.trim(),email:email.value.trim(),group:group.value,method:method.value,dailyVolume:{value:volume.value,unit:volumeUnit.value},...(hecRequestId ? {hecRequestId} : {})});
   } finally {
     submitting = false;
     controls.forEach((control,index) => control.disabled = disabled[index]);

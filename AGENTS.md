@@ -496,3 +496,16 @@ See docs/json-pipeline-framework.md. Existing HEC action remains unchanged.
 
 The JSON proposal pipeline name is `pl_json`, per owner direction. This does not
 authorize overwriting an existing pipeline or applying the proposal.
+
+## Application name and template-cloning direction (2026-10-19)
+
+The owner authorized a required Application / log name box, cloning their pl_json
+instead of synthesizing a new base pipeline, changing only BarometerIT, and naming
+the clone pl_<application-name> (spaces/punctuation become underscores). Preserve
+the template; block ambiguous assignments, collisions, and reserved template names.
+The intended Route uses the application name, cloned pipeline, true filter, and
+devnull output. This is explicit authorization for those resource creations once
+missing prerequisites and placement policy are resolved, not other mutations,
+commits/deployments, or restarts. Local pl_json lookup currently returns 404; the
+existing final catch-all means placement must be clarified before writing a Route.
+The clone/Route builders are prepared but not connected to Submit while blocked.
