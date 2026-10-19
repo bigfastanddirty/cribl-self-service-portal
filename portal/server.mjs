@@ -1,3 +1,4 @@
+import {validHecIndex} from './hec-index.mjs';
 import { discoveredHecTarget } from './hec-discovery.mjs';
 import { randomUUID } from 'node:crypto';
 import { diagnosticCode } from './diagnostics.mjs';
@@ -69,11 +70,11 @@ const server = http.createServer(async (req, res) => {
       if(req.headers['content-type']?.split(';')[0].trim() !== 'application/json') throw new Error();
       let bytes=0;const chunks=[];for await(const chunk of req){bytes+=chunk.length;if(bytes>4096)throw new Error();chunks.push(chunk);}
       input=JSON.parse(Buffer.concat(chunks).toString('utf8'));
-      if(!input || Object.keys(input).some(k=>!['group','source','requestId','hecRequestId','applicationName','barometerId','email','dailyVolume'].includes(k)) || !validRequestId(input.requestId) || !validRequestId(input.hecRequestId) || typeof input.group!=='string' || !/^[A-Za-z0-9_-]{1,128}$/.test(input.group) || !validEmail(input.email))throw new Error();
+      if(!input || Object.keys(input).some(k=>!['group','source','requestId','hecRequestId','applicationName','barometerId','email','dailyVolume','index'].includes(k)) || !validRequestId(input.requestId) || !validRequestId(input.hecRequestId) || typeof input.group!=='string' || !/^[A-Za-z0-9_-]{1,128}$/.test(input.group) || !validEmail(input.email))throw new Error();
       const v=input.dailyVolume;
       if(!v || typeof v.value!=='string' || !/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(v.value) || !['GB','TB'].includes(v.unit) || !Number.isFinite(Number(v.value)*(v.unit==='TB'?1000:1)) || Number(v.value)*(v.unit==='TB'?1000:1)<1)throw new Error();
       if(typeof input.applicationName!=='string' || !input.applicationName.trim() || input.applicationName.trim().length>100 || /[\x00-\x1f\x7f]/.test(input.applicationName) || typeof input.barometerId!=='string' || !input.barometerId.trim() || input.barometerId.trim().length>128 || /[\x00-\x1f\x7f]/.test(input.barometerId))throw new Error();
-      applicationPipelineId(input.applicationName);
+      applicationPipelineId(input.applicationName);if(!validHecIndex(input.index))throw new Error();
     } catch {json(400,{message:'Invalid processing setup request.'});return;}
     if(!jsonSetup || !process.env.HEC_STATE_DIR){diagnostic('SETUP_UNCONFIRMED');json(503,{message:'Processing setup is not configured.'});return;}
     try {
@@ -109,7 +110,8 @@ const server = http.createServer(async (req, res) => {
       let data = '', bytes = 0;
       for await (const chunk of req) { bytes += chunk.length; if (bytes > 4096) throw new Error(); data += chunk.toString('utf8'); }
       input = JSON.parse(data);
-      if (!input || typeof input.group !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(input.group) || !validRequestId(input.requestId) || typeof input.source !== 'string' || typeof input.barometerId !== 'string' || !input.barometerId.trim() || input.barometerId.trim().length > 128 || /[\x00-\x1f\x7f]/.test(input.barometerId) || Object.keys(input).some(key => !['group', 'requestId', 'barometerId', 'source'].includes(key))) throw new Error();
+      if (!input || typeof input.group !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(input.group) || !validRequestId(input.requestId) || typeof input.source !== 'string' || typeof input.barometerId !== 'string' || !input.barometerId.trim() || input.barometerId.trim().length > 128 || /[\x00-\x1f\x7f]/.test(input.barometerId) || Object.keys(input).some(key => !['group', 'requestId', 'barometerId', 'source', 'index'].includes(key))) throw new Error();
+      if(!validHecIndex(input.index))throw new Error();
     } catch { json(400, { message: 'Invalid credential request.' }); return; }
     try {const choices=await sourceChoices(input.group);if(!choices.some(s=>s.key===input.source && s.provisioning==='hec')){diagnostic('HEC_TARGET_UNAVAILABLE');json(400,{message:'No unambiguous approved HEC target is available.'});return;}}catch(failure){diagnostic(diagnosticCode(failure));json(503,{message:'HEC source discovery failed.'});return;}
     if (!hec) { diagnostic('HEC_TARGET_UNAVAILABLE');json(503, { message: 'HEC setup is unavailable for this location.' }); return; }

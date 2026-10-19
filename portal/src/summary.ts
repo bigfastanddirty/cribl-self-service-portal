@@ -1,5 +1,5 @@
 import { diagnosticFetch } from './diagnostics';
-interface Summary { applicationName?:string; barometerId:string; email:string; group:string; method:string; dailyVolume:{value:string;unit:string}; hecRequestId?:string }
+interface Summary {index?:string; applicationName?:string; barometerId:string; email:string; group:string; method:string; dailyVolume:{value:string;unit:string}; hecRequestId?:string }
 export function createSummarySender(){
  let previous='',requestId='';let sent=false;
  return {reset(){previous='';requestId='';sent=false;},async send(summary:Summary){

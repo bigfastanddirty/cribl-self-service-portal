@@ -1,3 +1,4 @@
+import {hecRouteFilter} from './hec-index.mjs';
 /** Clone preparation only. Callers must separately authorize applying drafts. */
 export function applicationPipelineId(applicationName) {
  if(typeof applicationName!=='string' || !applicationName.trim() || applicationName.trim().length>100 || /[\x00-\x1f\x7f]/.test(applicationName)) throw new Error('Invalid application / log name');
@@ -18,8 +19,8 @@ export function cloneJsonTemplate(template,{applicationName,barometerId}) {
  // Preserve the template configuration, never metadata added by read APIs.
  return {id,conf:clone.conf};
 }
-export function applicationRoute(applicationName,pipelineId,policy) {
+export function applicationRoute(applicationName,pipelineId,policy,matching) {
  if(pipelineId!==applicationPipelineId(applicationName))throw new Error('Pipeline reference mismatch');
  if(!['disabled-review','first-final','before-default-final'].includes(policy))throw new Error('Route placement policy must be approved');
- return {name:applicationName.trim(),pipeline:pipelineId,filter:'true',output:'devnull',disabled:policy==='disabled-review',final:policy!=='disabled-review',description:'',enableOutputExpression:false,clones:[]};
+ return {name:applicationName.trim(),pipeline:pipelineId,filter:hecRouteFilter(matching),output:'devnull',disabled:policy==='disabled-review',final:policy!=='disabled-review',description:'',enableOutputExpression:false,clones:[]};
 }

@@ -15,6 +15,7 @@ function element<T extends HTMLElement>(id: string): T {
 initializeDiagnostics();
 const form = element<HTMLFormElement>('request-form');
 const barometerId = element<HTMLInputElement>('barometer-id');
+const hecIndex = element<HTMLInputElement>('hec-index');
 const applicationName = element<HTMLInputElement>('application-name');
 const email = element<HTMLInputElement>('requester-email');
 const summarySender = createSummarySender();
@@ -34,13 +35,13 @@ let selectedFile: File | undefined;
 let finding: LogFinding | undefined;
 let analysisVersion = 0;
 let attemptedReview = false;
-const fields = { applicationName, email, barometerId, group, sample: sampleInput, method, volume, override };
+const fields = { index:hecIndex, applicationName, email, barometerId, group, sample: sampleInput, method, volume, override };
 
 function draft(): Draft {
-  return { applicationName:applicationName.value.trim(), barometerId:barometerId.value.trim(), email: email.value.trim(), group: group.value, method: method.value, dailyVolume: {value:volume.value,unit:volumeUnit.value}, logTypeOverride: override.value, sample: selectedFile ? { name: selectedFile.name, size: selectedFile.size, type: selectedFile.type } : undefined };
+  return { index:hecIndex.value.trim(), applicationName:applicationName.value.trim(), barometerId:barometerId.value.trim(), email: email.value.trim(), group: group.value, method: method.value, dailyVolume: {value:volume.value,unit:volumeUnit.value}, logTypeOverride: override.value, sample: selectedFile ? { name: selectedFile.name, size: selectedFile.size, type: selectedFile.type } : undefined };
 }
 function showErrors(errors: Errors): void {
-  for (const key of ['email', 'applicationName', 'barometerId', 'group', 'method', 'volume', 'sample', 'override'] as const) {
+  for (const key of ['email', 'index', 'applicationName', 'barometerId', 'group', 'method', 'volume', 'sample', 'override'] as const) {
     element(`${key}-error`).textContent = errors[key] || '';
     fields[key].setAttribute('aria-invalid', errors[key] ? 'true' : 'false');
     if (key === 'volume') volumeUnit.setAttribute('aria-invalid', errors[key] ? 'true' : 'false');
@@ -156,6 +157,7 @@ document.addEventListener('dragend', endDrag);
 element('remove-sample').addEventListener('click', () => {
   clearSample(); invalidatePreview(); sampleInput.focus();
 });
+hecIndex.addEventListener('input',invalidatePreview);
 applicationName.addEventListener('input', invalidatePreview);
 email.addEventListener('input', invalidatePreview);
 barometerId.addEventListener('input', invalidatePreview);
@@ -166,7 +168,7 @@ override.addEventListener('change', invalidatePreview);
 volumeUnit.addEventListener('change', () => { volume.min = volumeUnit.value === 'TB' ? '0.001' : '1'; invalidatePreview(); });
 form.addEventListener('reset', () => {
   resetSources();
-  attemptedReview = false; applicationName.value = ''; email.value = ''; barometerId.value = ''; summarySender.reset();
+  attemptedReview = false; applicationName.value = ''; hecIndex.value = ''; email.value = ''; barometerId.value = ''; summarySender.reset();
   group.value = ''; method.value = ''; volume.value = ''; volumeUnit.value = 'GB'; volume.min = '1';
   clearSample(); showErrors({}); invalidatePreview();
   element('announcement').textContent = 'Request cleared. The selected sample has been removed.';
@@ -178,7 +180,7 @@ form.addEventListener('submit', async event => {
   const errors = validateDraft(draft(), catalog, false);
   if (!applicationName.value.trim() || applicationName.value.trim().length > 100 || /[\x00-\x1f\x7f]/.test(applicationName.value)) errors.applicationName = 'Enter an application / log name (up to 100 characters).';
   showErrors(errors);
-  const firstError = (['email', 'applicationName', 'barometerId', 'group', 'method', 'volume', 'sample', 'override'] as const).find(key => errors[key]);
+  const firstError = (['email', 'index', 'applicationName', 'barometerId', 'group', 'method', 'volume', 'sample', 'override'] as const).find(key => errors[key]);
   if (firstError) {
     element('preview-result').hidden = true;
     element('preview-empty').hidden = false;
@@ -189,6 +191,8 @@ form.addEventListener('submit', async event => {
   element('review-barometer-id').textContent = barometerId.value.trim();
   element('review-email').textContent = email.value.trim();
   element('review-group').textContent = catalog.workerGroups.find(e => e.key === group.value)!.label;
+  const usesHec=catalog.collectionMethods.find(e=>e.key===method.value)?.provisioning==='hec';
+  element('review-index-label').hidden=!usesHec;element('review-index').hidden=!usesHec;element('review-index').textContent=usesHec?hecIndex.value.trim():'';
   element('review-method').textContent = catalog.collectionMethods.find(e => e.key === method.value)!.label;
   element('review-volume').textContent = `${Number(volume.value)} ${volumeUnit.value} per day`;
   element('preview-empty').hidden = true;
@@ -209,12 +213,12 @@ form.addEventListener('submit', async event => {
     let processingStarted=false,processingOk=false;
     const startProcessing=async(hecRequestId:string)=>{
       if(processingStarted)return;processingStarted=true;
-      processingOk=await processingSender.send({applicationName:applicationName.value.trim(),barometerId:barometerId.value.trim(),email:email.value.trim(),group:group.value,source:method.value,dailyVolume:{value:volume.value,unit:volumeUnit.value},hecRequestId});
+      processingOk=await processingSender.send({index:hecIndex.value.trim(),applicationName:applicationName.value.trim(),barometerId:barometerId.value.trim(),email:email.value.trim(),group:group.value,source:method.value,dailyVolume:{value:volume.value,unit:volumeUnit.value},hecRequestId});
     };
     const hecRequestId = provisionsHec ? await hec.submit(startProcessing) : undefined;
     if (provisionsHec && !hecRequestId) return;
     if(hecRequestId){await startProcessing(hecRequestId);if(!processingOk)return;}
-    await summarySender.send({applicationName:applicationName.value.trim(),barometerId:barometerId.value.trim(),email:email.value.trim(),group:group.value,method:method.value,dailyVolume:{value:volume.value,unit:volumeUnit.value},...(hecRequestId ? {hecRequestId} : {})});
+    await summarySender.send({...(hecRequestId?{index:hecIndex.value.trim()}:{}),applicationName:applicationName.value.trim(),barometerId:barometerId.value.trim(),email:email.value.trim(),group:group.value,method:method.value,dailyVolume:{value:volume.value,unit:volumeUnit.value},...(hecRequestId ? {hecRequestId} : {})});
   } finally {
     submitting = false;
     controls.forEach((control,index) => control.disabled = disabled[index]);

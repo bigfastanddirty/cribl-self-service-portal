@@ -7,6 +7,7 @@ async function complete(page:import('@playwright/test').Page,method='hec') {
  await page.locator('#worker-group').selectOption('default');
  await expect(page.locator('#collection-method')).toBeEnabled();
  await page.locator('#collection-method').selectOption(method);
+ if(method==='hec')await page.locator('#hec-index').fill('aquasec');
  await page.locator('#daily-volume').fill('1');
 }
 test('required fields are marked and sample step is hidden',async({page})=>{
@@ -219,4 +220,13 @@ test('pipeline and route start on token creation while HEC readiness is pending'
  expect(hecCalls).toBe(1);expect(processingCalls).toBe(1);
  await expect(page.locator('#hec-dialog-status')).toContainText('Deployment is pending');
  await expect(page.locator('#hec-dialog-status')).toContainText('ready to use',{timeout:10000});expect(processingCalls).toBe(1);
+});
+test('HEC index is conditionally required and blocks token creation when blank',async({page})=>{
+ let posts=0;const indices:string[]=[];
+ await page.route('**/api/hec',r=>{posts++;indices.push(r.request().postDataJSON().index);return r.fulfill({json:{endpoint:'http://example.com',token:'test-only'}});});
+ await page.goto('/');await expect(page.locator('#hec-index')).toBeHidden();await complete(page);
+ await expect(page.locator('#hec-index')).toBeVisible();await expect(page.locator('#hec-index')).toHaveAttribute('required','');
+ await page.locator('#hec-index').fill(' ');await page.getByRole('button',{name:'Submit request'}).click();await expect(page.locator('#index-error')).toContainText('Enter an index');expect(posts).toBe(0);
+ await page.locator('#hec-index').fill('aquasec');await page.getByRole('button',{name:'Submit request'}).click();await expect(page.getByRole('dialog')).toBeVisible();expect(indices).toEqual(['aquasec']);await expect(page.locator('#review-index')).toHaveText('aquasec');
+ await page.locator('#close-hec').click();await expect(page.locator('#preview-button')).toBeEnabled();await page.locator('#collection-method').selectOption('api');await expect(page.locator('#hec-index')).toBeHidden();await expect(page.locator('#hec-index')).not.toHaveAttribute('required','');
 });

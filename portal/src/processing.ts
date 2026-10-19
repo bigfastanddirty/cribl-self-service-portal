@@ -1,5 +1,5 @@
 import { diagnosticFetch } from './diagnostics';
-interface ProcessingRequest {applicationName:string;barometerId:string;email:string;group:string;source:string;dailyVolume:{value:string;unit:string};hecRequestId:string}
+interface ProcessingRequest {index:string;applicationName:string;barometerId:string;email:string;group:string;source:string;dailyVolume:{value:string;unit:string};hecRequestId:string}
 export function createProcessingSender() {
  let previous='',requestId='';
  return {async send(input:ProcessingRequest):Promise<boolean> {

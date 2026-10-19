@@ -22,10 +22,10 @@ test('HTTP setup accepts confirmed token creation before HEC readiness and write
   else {res.writeHead(500);res.end('{}');return;}
   res.writeHead(200,{'content-type':'application/json'});res.end(JSON.stringify({items}));
  });await new Promise(r=>upstream.listen(0,'127.0.0.1',r));
- const child=spawn(process.execPath,['server.mjs'],{env:{...process.env,PORT:'4181',CRIBL_API_TOKEN:'fake-test-only',CRIBL_URL:'http://127.0.0.1:'+upstream.address().port,HEC_TARGETS_FILE:path.join(dir,'targets.json'),HEC_STATE_DIR:path.join(dir,'hec'),JSON_SETUP_STATE_DIR:path.join(dir,'json')},stdio:['ignore','pipe','pipe']});
+ const child=spawn(process.execPath,['server.mjs'],{cwd:new URL('../',import.meta.url),env:{...process.env,PORT:'4181',CRIBL_API_TOKEN:'fake-test-only',CRIBL_URL:'http://127.0.0.1:'+upstream.address().port,HEC_TARGETS_FILE:path.join(dir,'targets.json'),HEC_STATE_DIR:path.join(dir,'hec'),JSON_SETUP_STATE_DIR:path.join(dir,'json')},stdio:['ignore','pipe','pipe']});
  try {
   await new Promise((resolve,reject)=>{const timeout=setTimeout(()=>reject(new Error('Server start timeout')),10000);child.stdout.once('data',()=>{clearTimeout(timeout);resolve();});child.once('exit',()=>{clearTimeout(timeout);reject(new Error('Server exited'));});});
-  const payload={requestId,hecRequestId:hecId,group:'default',source:'in_hec',applicationName:'Akamai Audit',barometerId:'BAR-1',email:'requester@example.com',dailyVolume:{value:'1',unit:'GB'}};
+  const payload={index:'aquasec',requestId,hecRequestId:hecId,group:'default',source:'in_hec',applicationName:'Akamai Audit',barometerId:'BAR-1',email:'requester@example.com',dailyVolume:{value:'1',unit:'GB'}};
   const send=data=>fetch('http://127.0.0.1:4181/api/json-setup',{method:'POST',headers:{origin:'http://127.0.0.1:4181','content-type':'application/json'},body:JSON.stringify(data)});
   assert.equal((await send({...payload,source:'not-approved'})).status,400);assert.equal(writes.length,0);
   const catalog=await fetch('http://127.0.0.1:4181/source-catalog.json?group=default');const catalogText=await catalog.text();assert.equal(JSON.parse(catalogText).collectionMethods.find(s=>s.key==='in_hec').provisioning,'hec');assert.doesNotMatch(catalogText,/not-for-browser|authTokens|splunkHecAPI/);
@@ -33,7 +33,7 @@ test('HTTP setup accepts confirmed token creation before HEC readiness and write
   await writeFile(path.join(dir,'hec',hecId+'.json'),JSON.stringify({group:'default',complete:false,tokenCreated:true}),{mode:0o600});
   const response=await send(payload);assert.equal(response.status,200);assert.equal((await response.json()).deployed,false);
   assert.deepEqual(writes,[['POST','/m/default/pipelines'],['PATCH','/m/default/routes/default']]);
-  assert.equal(table.routes[0].name,'Akamai Audit');assert.equal(table.routes[1].id,'default');
+  assert.equal(table.routes[0].name,'Akamai Audit');assert.equal(table.routes[0].filter,"__inputId=='splunk_hec:in_hec' && index.includes('aquasec')");assert.equal(table.routes[1].id,'default');
   assert.equal((await send(payload)).status,200);assert.equal(writes.length,2);
- }finally{child.kill();await new Promise(r=>child.once('exit',r));await new Promise(r=>upstream.close(r));await rm(dir,{recursive:true,force:true});}
+ }finally{if(child.exitCode===null && child.signalCode===null){child.kill();await new Promise(r=>child.once('exit',r));}await new Promise(r=>upstream.close(r));await rm(dir,{recursive:true,force:true});}
 });

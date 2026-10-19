@@ -12,8 +12,8 @@ export function initializeHec(group: HTMLSelectElement, method: HTMLSelectElemen
   let busy = false;
   function clearDialog() { find('hec-endpoint').textContent = ''; find('hec-token').textContent = ''; find('hec-copy-status').textContent = ''; }
   function isHec() { return method.selectedOptions[0]?.dataset.provisioning === 'hec'; }
-  function render() { section.hidden = !isHec(); }
-  function reset() { requestId = undefined; credentials = undefined; ready = false; error.hidden = true; dialog.close(); clearDialog(); render(); }
+  function render() { section.hidden = !isHec();find<HTMLInputElement>('hec-index').required=isHec();find<HTMLInputElement>('hec-index').disabled=!isHec(); }
+  function reset() { find<HTMLInputElement>('hec-index').value='';requestId = undefined; credentials = undefined; ready = false; error.hidden = true; dialog.close(); clearDialog(); render(); }
   function showCredentials() {
     find('hec-endpoint').textContent = credentials!.endpoint;
     find('hec-token').textContent = credentials!.token;
@@ -47,7 +47,7 @@ export function initializeHec(group: HTMLSelectElement, method: HTMLSelectElemen
       if (credentials) { showCredentials(); displayed = true; }
       const deadline = Date.now() + 10 * 60 * 1000;
       while (true) {
-        const response = await diagnosticFetch('/api/hec', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ group: group.value, requestId, source:method.value, barometerId: find<HTMLInputElement>('barometer-id').value.trim() }), cache: 'no-store' });
+        const response = await diagnosticFetch('/api/hec', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ group: group.value, requestId, source:method.value, index:find<HTMLInputElement>('hec-index').value.trim(), barometerId: find<HTMLInputElement>('barometer-id').value.trim() }), cache: 'no-store' });
         if (response.status === 202) {
           const pending = await response.json();
           if (typeof pending.endpoint === 'string' && typeof pending.token === 'string' && pending.token) {

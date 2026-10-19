@@ -591,3 +591,18 @@ reuse processing state rather than duplicate writes. Continue readiness checks a
 keep pending/not-ready messaging. Existing processing commits/deployments remain
 unauthorized. Readiness retries after a recorded token commit may tolerate pending
 processing drafts without committing them or creating a new token.
+
+## Required HEC index and bounded Route matching (2026-10-19)
+
+The owner authorized a required Index field expanded for approved HEC setup, with
+case-sensitive substring matching. Generate the fixed filter pattern
+__inputId=='splunk_hec:<selected-input-id>' && index.includes('<entered-index>')
+in place of true. Both conditions must hold. The source ID comes from the validated
+selected configured HEC source, never a customer expression or a hardcoded HEC ID.
+Validate index before token creation and pipeline/Route creation: trimmed nonblank
+text, maximum 128 characters, no ASCII controls. Quote/escape text as a JS literal;
+do not permit arbitrary expressions. Show Index contains in the summary. Changing
+index invalidates the preview and processing deduplication; resetting or changing
+location/source clears it. Other sources have no required index. This does not
+change source allowedIndexes, token metadata, existing Routes, destination or
+placement, and does not authorize processing commits/deployments or enabling.

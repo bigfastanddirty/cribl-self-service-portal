@@ -1,8 +1,9 @@
+import {validHecIndex} from '../hec-index.mjs';
 export interface CatalogEntry { key: string; label: string; description?: string; disabled?: boolean; provisioning?: 'hec' | 'summary' }
 export interface Catalog { version: number; provenance: string; workerGroups: CatalogEntry[]; collectionMethods: CatalogEntry[] }
 export interface SampleInfo { name: string; size: number; type: string }
-export interface Draft { applicationName?: string; barometerId?: string; email?: string; group: string; method: string; sample?: SampleInfo; dailyVolume?: {value:string; unit:string}; logTypeOverride?: string }
-export type Errors = Partial<Record<'applicationName' | 'barometerId' | 'email' | 'group' | 'sample' | 'method' | 'volume' | 'override', string>>;
+export interface Draft { index?:string; applicationName?: string; barometerId?: string; email?: string; group: string; method: string; sample?: SampleInfo; dailyVolume?: {value:string; unit:string}; logTypeOverride?: string }
+export type Errors = Partial<Record<'index' | 'applicationName' | 'barometerId' | 'email' | 'group' | 'sample' | 'method' | 'volume' | 'override', string>>;
 export const MAX_SAMPLE_BYTES = 1_000_000;
 export function validateSample(sample: SampleInfo): string | undefined {
   if (sample.size === 0) return 'This sample is empty. Choose a file with some log content.';
@@ -20,6 +21,7 @@ export function validateVolume(volume: Draft['dailyVolume']): string | undefined
 }
 export function validateDraft(draft: Draft, catalog: Catalog, requireSample = true): Errors {
   const errors: Errors = {};
+  if(catalog.collectionMethods.find(s=>s.key===draft.method)?.provisioning==='hec' && !validHecIndex(draft.index))errors.index='Enter an index (up to 128 characters).';
   if (!draft.barometerId || !draft.barometerId.trim() || draft.barometerId.trim().length > 128 || /[\x00-\x1f\x7f]/.test(draft.barometerId)) errors.barometerId = 'Enter a BarometerIT (up to 128 characters).';
   if (!draft.email || !/^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$/.test(draft.email) || draft.email.length > 254 || draft.email.split('@')[0].length > 64 || draft.email.startsWith('.') || draft.email.includes('..') || draft.email.includes('.@')) errors.email = 'Enter a valid email address.';
   if (!catalog.workerGroups.some(e => e.key === draft.group)) errors.group = 'Choose a data location from the available options.';

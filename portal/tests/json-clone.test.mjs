@@ -13,6 +13,6 @@ test('rejects missing template, ambiguous assignments and reserved identity',()=
 });
 test('requires explicit route policy and generates the requested references',()=>{
  assert.throws(()=>applicationRoute('Akamai Audit','pl_Akamai_Audit'));
- const route=applicationRoute('Akamai Audit','pl_Akamai_Audit','disabled-review');
- assert.equal(route.name,'Akamai Audit');assert.equal(route.pipeline,'pl_Akamai_Audit');assert.equal(route.filter,'true');assert.equal(route.output,'devnull');assert.equal(route.disabled,true);
+ const route=applicationRoute('Akamai Audit','pl_Akamai_Audit','disabled-review',{source:'HEC',index:'aquasec'});
+ assert.equal(route.name,'Akamai Audit');assert.equal(route.pipeline,'pl_Akamai_Audit');assert.equal(route.filter,"__inputId=='splunk_hec:HEC' && index.includes('aquasec')");assert.equal(route.output,'devnull');assert.equal(route.disabled,true);
 });

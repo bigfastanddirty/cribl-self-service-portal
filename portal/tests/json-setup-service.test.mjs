@@ -1,7 +1,7 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';
 import {createJsonSetupService} from '../json-setup-service.mjs';
 const id='11111111-1111-4111-8111-111111111111';
-const input={requestId:id,group:'default',applicationName:'Akamai Audit',barometerId:'BAR-1'};
+const input={source:'in_hec',index:'aquasec',requestId:id,group:'default',applicationName:'Akamai Audit',barometerId:'BAR-1'};
 function fixture(options={}) {
  const pipelines=new Map([['pl_json',{id:'pl_json',conf:{output:'default',functions:[{id:'eval',conf:{add:[{name:'BarometerIT',value:"'old'"}],remove:['_raw']}}]}}]]);
  const records=new Map(),writes=[];
@@ -18,7 +18,7 @@ test('clones and inserts enabled true/devnull route immediately before default, 
  const f=fixture(),original=structuredClone(f.pipelines.get('pl_json'));
  const result=await f.service.create(input);assert.equal(result.pipeline,'pl_Akamai_Audit');assert.equal(result.deployed,false);
  const table=f.getTable();assert.deepEqual(table.routes.map(r=>r.id),['existing','portal_'+id.replaceAll('-',''),'default']);
- assert.equal(table.routes[1].disabled,false);assert.equal(table.routes[1].final,true);assert.equal(table.routes[1].filter,'true');assert.equal(table.routes[1].output,'devnull');assert.deepEqual(table.comments,[{comment:'retain'}]);
+ assert.equal(table.routes[1].disabled,false);assert.equal(table.routes[1].final,true);assert.equal(table.routes[1].filter,"__inputId=='splunk_hec:in_hec' && index.includes('aquasec')");assert.equal(table.routes[1].output,'devnull');assert.deepEqual(table.comments,[{comment:'retain'}]);
  assert.deepEqual(f.pipelines.get('pl_json'),original);await f.service.create(input);assert.equal(f.writes.length,2);
 });
 test('missing template and name collisions block mutation',async()=>{

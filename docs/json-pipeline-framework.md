@@ -158,3 +158,29 @@ complete readiness. Pending responses reuse the same processing request. HEC che
 continue with pending messaging. A readiness retry with an already committed,
 existing token tolerates pending pipeline/Route drafts without committing them.
 Processing resources still remain uncommitted and undeployed.
+
+### HEC index matching (2026-10-19)
+
+HEC setup expands a required Index text box. It is not an expression editor. After
+owner clarification, matching uses a case-sensitive substring, not equality:
+
+```javascript
+__inputId=='splunk_hec:HEC' && index.includes('aquasec')
+```
+
+`HEC` is illustrative: the generator uses the validated selected Source ID; the
+Index text comes from the form. Both clauses are joined with AND. Quotes, backslashes
+and Unicode line separators are escaped as literal data. Validation rejects missing,
+blank, over-128-character, and ASCII-control-containing values before token writes
+and processing writes. This is a portal text policy, not proof of index existence.
+Only the Route filter changes; source/token allowed-index settings are not altered.
+Existing resource collisions still block overwrites, including older true-filter
+Routes. New requests carry index/source in their processing fingerprint.
+
+The Route matches the HEC event's `index` metadata before the JSON pipeline runs;
+it does not search an index value embedded only inside `_raw`. The sender must
+provide an appropriate index. Cribl's [Splunk HEC documentation](https://docs.cribl.io/stream/sources-splunk-hec/)
+identifies __inputId as an internal event field and describes its default index
+behavior; the documented [source identifier format](https://docs.cribl.io/search/organize-data/)
+is type:id. The substring filter expects string index metadata as in HEC events.
+No uploaded samples or synthetic live events are sent to Cribl for this change.

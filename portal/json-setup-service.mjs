@@ -9,7 +9,7 @@ export function createJsonSetupService({request,store}) {
  return {async create(input) {
   if(!input || !validRequestId(input.requestId) || !/^[A-Za-z0-9_-]{1,128}$/.test(input.group))throw new Error('Invalid processing request');
   const pipelineId=applicationPipelineId(input.applicationName);
-  const fingerprint=createHash('sha256').update(JSON.stringify([input.group,input.applicationName.trim(),input.barometerId])).digest('hex');
+  const fingerprint=createHash('sha256').update(JSON.stringify([input.group,input.applicationName.trim(),input.barometerId,input.index?.trim(),input.source])).digest('hex');
   const run=async()=>{
    const prefix='/m/'+input.group;
    let record=await store.get(input.requestId);
@@ -26,7 +26,7 @@ export function createJsonSetupService({request,store}) {
     const table=await readTable();
     if(table.routes.filter(r=>r.id==='default').length!==1 || table.routes.at(-1)?.id!=='default')throw new Error('Default must be the last route');
     if(await readPipeline(pipelineId) || table.routes.some(r=>r.name===input.applicationName.trim()))throw new Error('Application pipeline or route already exists; administrator review required');
-    const route={id:'portal_'+input.requestId.replaceAll('-',''),...applicationRoute(input.applicationName,pipelineId,'before-default-final')};
+    const route={id:'portal_'+input.requestId.replaceAll('-',''),...applicationRoute(input.applicationName,pipelineId,'before-default-final',{index:input.index,source:input.source})};
     record={fingerprint,pipeline,route,originalRoutes:table,complete:false};
     // Persist intent before writes so timeouts/restarts can be reconciled.
     await store.put(input.requestId,record);

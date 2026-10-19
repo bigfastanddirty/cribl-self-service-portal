@@ -91,3 +91,10 @@ test('JSON setup rejects invalid origin, identity and oversized bodies before wr
  assert.equal((await get('/api/json-setup','POST',headers,'x'.repeat(4097))).status,400);
  assert.equal((await get('/api/json-setup','POST',headers,'{}')).status,400);
 });
+test('HEC index is validated before token setup',async()=>{
+ const headers={Origin:'http://127.0.0.1:4174','Content-Type':'application/json'};
+ for(const index of [undefined,'','   ','x\ny','x'.repeat(129)]) {
+  const payload={group:'default',source:'in_splunk_hec',requestId:'11111111-1111-4111-8111-111111111111',barometerId:'BAR-1',index};
+  assert.equal((await get('/api/hec','POST',headers,JSON.stringify(payload))).status,400);
+ }
+});
