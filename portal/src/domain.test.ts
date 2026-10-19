@@ -8,9 +8,9 @@ describe('sample size boundary', () => {
   it('rejects an empty sample', () => expect(validateSample({ ...sample, size: 0 })).toMatch(/empty/));
 });
 describe('preview validation', () => {
-  it('requires all request answers', () => expect(Object.keys(validateDraft({ group: '', method: '' }, catalog))).toEqual(['email', 'group', 'sample', 'method', 'volume']));
+  it('requires all request answers', () => expect(Object.keys(validateDraft({ group: '', method: '' }, catalog))).toEqual(['barometerId', 'email', 'group', 'sample', 'method', 'volume']));
   it('rejects IDs outside the configured catalog', () => expect(validateDraft({ group: 'unknown', method: 'method', sample }, catalog).group).toBeTruthy());
-  it('allows a complete fixture-backed request', () => expect(validateDraft({ email:'requester@example.com', group: 'group', method: 'method', sample, dailyVolume: {value:'1', unit:'GB'} }, catalog)).toEqual({}));
+  it('allows a complete fixture-backed request', () => expect(validateDraft({ barometerId:'BAR-12345', email:'requester@example.com', group: 'group', method: 'method', sample, dailyVolume: {value:'1', unit:'GB'} }, catalog)).toEqual({}));
   it('does not let an oversized sample into the preview', () => expect(validateDraft({ group: 'group', method: 'method', sample: { ...sample, size: 1_000_001 } }, catalog).sample).toBeTruthy());
 });
 
@@ -29,8 +29,15 @@ describe('daily volume policy', () => {
 describe('requester email',()=>{
  it('requires a valid email before submitting',()=>{
   const base={group:'group',method:'method',sample,dailyVolume:{value:'1',unit:'GB'}};
-  expect(validateDraft({...base,email:''},catalog).email).toBeTruthy();
-  expect(validateDraft({...base,email:'invalid'},catalog).email).toBeTruthy();
-  expect(validateDraft({...base,email:'requester@example.com'},catalog)).toEqual({});
+  expect(validateDraft({...base,barometerId:'BAR-12345',email:''},catalog).email).toBeTruthy();
+  expect(validateDraft({...base,barometerId:'BAR-12345',email:'invalid'},catalog).email).toBeTruthy();
+  expect(validateDraft({...base,barometerId:'BAR-12345',email:'requester@example.com'},catalog)).toEqual({});
+ });
+});
+describe('BarometerID',()=>{
+ it('requires nonblank bounded text without prescribing an ID format',()=>{
+  const base={email:'requester@example.com',group:'group',method:'method',dailyVolume:{value:'1',unit:'GB'}};
+  for(const barometerId of [undefined,'','   ','x'.repeat(129),'a\nb'])expect(validateDraft({...base,barometerId},catalog,false).barometerId).toBeTruthy();
+  expect(validateDraft({...base,barometerId:'BAR-12345'},catalog,false)).toEqual({});
  });
 });

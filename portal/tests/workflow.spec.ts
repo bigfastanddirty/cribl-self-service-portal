@@ -3,17 +3,18 @@ const catalog={version:1,provenance:'Test choices',workerGroups:[{key:'default',
 test.beforeEach(async({page})=>{await page.route('**/catalog.json',r=>r.fulfill({json:catalog}));await page.route('**/api/summary',r=>r.fulfill({json:{status:'sent'}}));});
 async function complete(page:import('@playwright/test').Page,method='hec') {
  await page.locator('#requester-email').fill('requester@example.com');
+ await page.locator('#barometer-id').fill('BAR-12345');
  await page.locator('#worker-group').selectOption('default');
  await page.locator('#collection-method').selectOption(method);
  await page.locator('#daily-volume').fill('1');
 }
 test('required fields are marked and sample step is hidden',async({page})=>{
  await page.goto('/');
- await expect(page.locator('.question:visible')).toHaveCount(4);
+ await expect(page.locator('.question:visible')).toHaveCount(5);
  await expect(page.locator('#sample')).toBeHidden();
  await expect(page.locator('#create-hec')).toHaveCount(0);
- for(const id of ['requester-email','worker-group','collection-method','daily-volume','volume-unit'])await expect(page.locator('#'+id)).toHaveAttribute('required','');
- await expect(page.locator('.required-label:visible')).toHaveCount(5);
+ for(const id of ['requester-email','barometer-id','worker-group','collection-method','daily-volume','volume-unit'])await expect(page.locator('#'+id)).toHaveAttribute('required','');
+ await expect(page.locator('.required-label:visible')).toHaveCount(6);
 });
 test('invalid submissions do not create tokens',async({page})=>{
  let calls=0;await page.route('**/api/hec',r=>{calls++;return r.fulfill({json:{}});});
@@ -64,7 +65,7 @@ test('empty and failed catalogs block submission',async({page})=>{
  await page.route('**/catalog.json',r=>r.fulfill({json:{...catalog,workerGroups:[]}}));await page.goto('/');await expect(page.locator('#preview-button')).toBeDisabled();
  await page.route('**/catalog.json',r=>r.fulfill({status:500,body:'failed'}));await page.reload();await expect(page.locator('#service-error')).toBeVisible();await expect(page.locator('#preview-button')).toBeDisabled();
 });
-test('four-question form and popup fit small screens',async({page})=>{
+test('five-question form and popup fit small screens',async({page})=>{
  await page.setViewportSize({width:320,height:800});await page.route('**/api/hec',r=>r.fulfill({json:{endpoint:'http://example:8088/services/collector',token:'test-only-token'}}));
  await page.goto('/');await complete(page);await page.getByRole('button',{name:'Submit request'}).click();await expect(page.getByRole('dialog')).toBeVisible();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
@@ -119,4 +120,13 @@ test('shows a newly created token while deployment is pending and updates readin
  await expect(page.locator('#hec-dialog-status')).toContainText('Deployment is pending');
  await expect.poll(()=>calls,{timeout:10000}).toBe(2);finish();
  await expect(page.locator('#hec-dialog-status')).toContainText('ready to use');
+});
+test('BarometerID is required, included in the summary, and cleared on reset',async({page})=>{
+ let posts=0;await page.route('**/api/summary',r=>{posts++;expect(r.request().postDataJSON().barometerId).toBe('BAR-12345');return r.fulfill({json:{status:'sent'}});});
+ await page.goto('/');await complete(page,'api');await page.locator('#barometer-id').fill('   ');
+ await page.getByRole('button',{name:'Submit request'}).click();await expect(page.locator('#barometerId-error')).not.toBeEmpty();expect(posts).toBe(0);
+ await page.locator('#barometer-id').fill('BAR-12345');await page.getByRole('button',{name:'Submit request'}).click();
+ await expect(page.locator('#review-barometer-id')).toHaveText('BAR-12345');await expect.poll(()=>posts).toBe(1);
+ await page.locator('#barometer-id').fill('BAR-54321');await expect(page.locator('#preview-result')).toBeHidden();
+ await page.getByRole('button',{name:'Clear request'}).click();await expect(page.locator('#barometer-id')).toHaveValue('');
 });

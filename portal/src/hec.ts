@@ -4,7 +4,7 @@ export function initializeHec(group: HTMLSelectElement, method: HTMLSelectElemen
   const error = find('hec-error');
   const dialog = find<HTMLDialogElement>('hec-dialog');
   const submitButton = find<HTMLButtonElement>('preview-button');
-  const controls = [find<HTMLInputElement>('requester-email'), group, method, find<HTMLInputElement>('daily-volume'), find<HTMLSelectElement>('volume-unit'), submitButton, form.querySelector<HTMLButtonElement>('button[type=reset]')!, find<HTMLButtonElement>('retry-catalog')];
+  const controls = [find<HTMLInputElement>('barometer-id'), find<HTMLInputElement>('requester-email'), group, method, find<HTMLInputElement>('daily-volume'), find<HTMLSelectElement>('volume-unit'), submitButton, form.querySelector<HTMLButtonElement>('button[type=reset]')!, find<HTMLButtonElement>('retry-catalog')];
   let requestId: string | undefined;
   let credentials: { endpoint: string; token: string } | undefined;
   let ready = false;
@@ -45,7 +45,7 @@ export function initializeHec(group: HTMLSelectElement, method: HTMLSelectElemen
       if (credentials) { showCredentials(); displayed = true; }
       const deadline = Date.now() + 10 * 60 * 1000;
       while (true) {
-        const response = await fetch('/api/hec', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ group: group.value, requestId }), cache: 'no-store' });
+        const response = await fetch('/api/hec', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ group: group.value, requestId, barometerId: find<HTMLInputElement>('barometer-id').value.trim() }), cache: 'no-store' });
         if (response.status === 202) {
           const pending = await response.json();
           if (typeof pending.endpoint === 'string' && typeof pending.token === 'string' && pending.token) {

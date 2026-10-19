@@ -268,3 +268,11 @@ sudo systemctl restart cribl-self-service
 ```
 
 The fresh-install script deliberately does not overwrite an existing installation.
+
+## Required BarometerID
+
+The second question, after email, requires BarometerID. Outer whitespace is trimmed;
+blank input, ASCII control characters, and values over 128 characters are rejected.
+No external ID lookup or business-specific ID format is assumed. The ID is shown in
+the summary and email, and required by both HEC and notification POST validation.
+It is not added to Cribl configuration. Editing invalidates preview; reset clears it.

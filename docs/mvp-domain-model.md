@@ -478,3 +478,13 @@ the popup clears visible secrets and does not cancel deployment; readiness does
 not reopen a popup the customer already closed. Failures retain the token and
 show deployment unconfirmed. Summary emails still require HEC completion; live
 email setup remains paused. No Worker restarts are enabled.
+
+## BarometerID (2026-10-19)
+
+Customer intent now includes required barometerId, presented as BarometerID after
+email and before data location. It is trimmed text of 1–128 characters, excluding
+ASCII control characters. No approved business-specific format, ownership lookup,
+or existence check is currently defined. This validates presence and safe bounded
+text only; it does not certify that an ID exists in Barometer. Include it in the
+plain-language summary and summary email, and in notification identity. It is not
+translated into Cribl routing configuration, token descriptions, or source metadata.

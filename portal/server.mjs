@@ -60,7 +60,7 @@ const server = http.createServer(async (req, res) => {
       let data = '', bytes = 0;
       for await (const chunk of req) { bytes += chunk.length; if (bytes > 4096) throw new Error(); data += chunk.toString('utf8'); }
       input = JSON.parse(data);
-      if (!input || typeof input.group !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(input.group) || !validRequestId(input.requestId) || Object.keys(input).some(key => !['group', 'requestId'].includes(key))) throw new Error();
+      if (!input || typeof input.group !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(input.group) || !validRequestId(input.requestId) || typeof input.barometerId !== 'string' || !input.barometerId.trim() || input.barometerId.trim().length > 128 || /[\x00-\x1f\x7f]/.test(input.barometerId) || Object.keys(input).some(key => !['group', 'requestId', 'barometerId'].includes(key))) throw new Error();
     } catch { json(400, { message: 'Invalid credential request.' }); return; }
     if (!hec) { json(503, { message: 'HEC setup is unavailable for this location.' }); return; }
     let replied = false;

@@ -47,8 +47,8 @@ input[type=file]::file-selector-button{min-height:2.5rem}
 .volume-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(5.5rem,.45fr);gap:1rem;align-items:end}
 .volume-fields>div{min-width:0}
 .volume-fields label{font-size:.875rem}
-input[type=number],input[type=email]{width:100%;min-width:0;min-height:2.875rem;padding:12px 13px;background:#1c1c1c;color:#ebebeb;border:1px solid #4d4d4d;border-radius:6px;font-size:.875rem}
-input[type=number][aria-invalid=true],input[type=email][aria-invalid=true]{border-color:#e59091}
+input[type=number],input[type=email],input[type=text]{width:100%;min-width:0;min-height:2.875rem;padding:12px 13px;background:#1c1c1c;color:#ebebeb;border:1px solid #4d4d4d;border-radius:6px;font-size:.875rem}
+input[type=number][aria-invalid=true],input[type=email][aria-invalid=true],input[type=text][aria-invalid=true]{border-color:#e59091}
 .override-control{margin-top:1rem}
 #review-type-note{font-weight:400;font-size:.8125rem;margin-top:.5rem}
 @media(max-width:25rem){.volume-fields{gap:.65rem;grid-template-columns:minmax(0,1fr) 5.5rem}}

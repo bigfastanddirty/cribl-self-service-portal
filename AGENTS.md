@@ -421,3 +421,15 @@ or npd, using case-insensitive substring matching. Filter server-side before ret
 the catalog; do not modify groups in Cribl. Keep existing unavailable-choice feedback
 if all groups are excluded. This is a choice-display rule, not a replacement for
 production authorization controls.
+
+## Required BarometerID (2026-10-19)
+
+Add a required BarometerID text field immediately after requester email. Reject
+blank/whitespace-only values, ASCII control characters, and values exceeding 128
+characters; trim outer whitespace. No organization-specific ID pattern or external
+Barometer lookup is defined. Include the ID in the request summary and summary
+email, and incorporate it in notification deduplication. Reset clears it; edits
+invalidate the preview. Hidden samples remain last/deferred. Both HEC submission
+and notification endpoints require the ID before their respective side effects.
+The ID is portal request information, not new Cribl configuration or HEC metadata.
+Email delivery remains paused; no Cribl configuration changes are required.
