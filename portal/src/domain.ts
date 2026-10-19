@@ -1,4 +1,4 @@
-export interface CatalogEntry { key: string; label: string; disabled?: boolean; provisioning?: 'hec' | 'summary' }
+export interface CatalogEntry { key: string; label: string; description?: string; disabled?: boolean; provisioning?: 'hec' | 'summary' }
 export interface Catalog { version: number; provenance: string; workerGroups: CatalogEntry[]; collectionMethods: CatalogEntry[] }
 export interface SampleInfo { name: string; size: number; type: string }
 export interface Draft { barometerId?: string; email?: string; group: string; method: string; sample?: SampleInfo; dailyVolume?: {value:string; unit:string}; logTypeOverride?: string }

@@ -9,7 +9,7 @@
     "start": "node server.mjs",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "test:server": "node --test tests/server.test.mjs tests/cribl-client.test.mjs tests/hec-service.test.mjs tests/notification-service.test.mjs tests/mail-integration.test.mjs"
+    "test:server": "node --test tests/source-types.test.mjs tests/server.test.mjs tests/cribl-client.test.mjs tests/hec-service.test.mjs tests/notification-service.test.mjs tests/mail-integration.test.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",

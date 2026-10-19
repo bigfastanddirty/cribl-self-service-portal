@@ -152,7 +152,7 @@ element('remove-sample').addEventListener('click', () => {
 email.addEventListener('input', invalidatePreview);
 barometerId.addEventListener('input', invalidatePreview);
 group.addEventListener('change', invalidatePreview);
-method.addEventListener('change', invalidatePreview);
+method.addEventListener('change', () => { invalidatePreview(); element('source-description').textContent = catalog?.collectionMethods.find(e => e.key === method.value)?.description || ''; });
 volume.addEventListener('input', invalidatePreview);
 override.addEventListener('change', invalidatePreview);
 volumeUnit.addEventListener('change', () => { volume.min = volumeUnit.value === 'TB' ? '0.001' : '1'; invalidatePreview(); });
@@ -205,14 +205,14 @@ form.addEventListener('submit', async event => {
 });
 function populate(select: HTMLSelectElement, entries: CatalogEntry[], placeholder: string): void {
   select.replaceChildren(new Option(placeholder, ''));
-  for (const entry of entries) { const option = new Option(entry.label, entry.key); option.dataset.provisioning = entry.provisioning || 'summary'; select.add(option); }
+  for (const entry of entries) { const option = new Option(entry.label, entry.key); option.title = entry.description || ''; option.dataset.provisioning = entry.provisioning || 'summary'; select.add(option); }
   select.disabled = entries.length === 0;
 }
 function resetSources(): void {
   sourceVersion++;
   if (catalog) { catalog.collectionMethods = []; element('service-error').hidden = true; }
   populate(method, [], 'Select a location first');
-  element('source-status').textContent = 'Choose a location to load its configured sources.';
+  element('source-status').textContent = 'Choose a location to load available source choices.';
   method.dispatchEvent(new Event('change'));
 }
 group.addEventListener('change', () => { void loadSources(); });
@@ -222,15 +222,15 @@ async function loadSources(): Promise<void> {
   const version = sourceVersion, selectedGroup = group.value;
   populate(method, [], 'Loading sources…');
   element('service-error').hidden = true;
-  element('source-status').textContent = 'Loading configured sources…';
+  element('source-status').textContent = 'Loading source choices…';
   try {
     const response = await fetch('/source-catalog.json?group=' + encodeURIComponent(selectedGroup), {cache:'no-store'});
     if (!response.ok) throw new Error('Sources unavailable');
     const choices = parseSourceCatalog(await response.json());
     if (version !== sourceVersion || group.value !== selectedGroup || !catalog) return;
     catalog.collectionMethods = choices;
-    populate(method, choices, choices.length ? 'Select a collection method' : 'No sources configured');
-    element('source-status').textContent = choices.length ? 'All configured sources are shown, including disabled sources. Only approved HEC sources provide automatic setup; others provide a summary.' : 'No sources are configured in this location.';
+    populate(method, choices, choices.length ? 'Select a collection method' : 'No source choices available');
+    element('source-status').textContent = choices.length ? 'Choose a source to see what it collects. Only approved HEC connections provide automatic setup; other choices record your request.' : 'No source choices are available in this location.';
   } catch {
     if (version !== sourceVersion || !catalog) return;
     populate(method, [], 'Sources unavailable');

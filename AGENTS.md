@@ -461,3 +461,14 @@ System*, Cribl*, and journal-file sources from customer choices, matching source
 type, identifier, or friendly label case-insensitively. Preserve internal disabled
 state and existing provisioning restrictions. These are display exclusions only;
 do not change any configuration in Cribl.
+
+## Full source-type catalog and descriptions (2026-10-19)
+
+The owner authorized showing all source types, including unconfigured types and
+Collectors, with existing System*, Cribl*, and journal-file exclusions. Maintain a
+versioned type catalog observed from the installed Cribl Sources UI (4.20.1), merged
+with live configured sources. Synthetic type references are summary-only; only the
+existing enabled mapped HEC instance may provision credentials. No source creation
+or enabling is authorized. Provide plain-language descriptions as option tooltips
+and visible selected-source help for keyboard and touch users. Updating the type
+catalog for another Cribl version requires verification; it is not a live type API.

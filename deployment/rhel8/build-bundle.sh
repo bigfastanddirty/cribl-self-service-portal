@@ -13,7 +13,7 @@ cp -a "$repo/portal/dist" "$stage/$name/app/"
 # be readable by the dedicated service user, without changing their contents.
 find "$stage/$name/app/dist" -type d -exec chmod 0755 {} +
 find "$stage/$name/app/dist" -type f -exec chmod 0644 {} +
-for file in server.mjs cribl-client.mjs hec-service.mjs notification-service.mjs mail-transport.mjs; do cp "$repo/portal/$file" "$stage/$name/app/"; done
+for file in server.mjs source-types.mjs cribl-client.mjs hec-service.mjs notification-service.mjs mail-transport.mjs; do cp "$repo/portal/$file" "$stage/$name/app/"; done
 # The only runtime dependency is architecture-independent JavaScript. Never copy
 # the whole development node_modules tree or any private VM configuration.
 node --input-type=module - "$repo/portal" "$stage/$name/app" <<'JS'

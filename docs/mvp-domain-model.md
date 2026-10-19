@@ -509,3 +509,11 @@ mapping. Other Source choices do not create or deploy configuration. Notificatio
 resolve the current Source label from Cribl server-side rather than trusting browser
 text. Existing input validation, BarometerIT, upload deferral, and secret handling
 remain in force.
+
+### Full source catalog (2026-10-19)
+
+The selector includes a versioned catalog of all source types and Collectors observed
+in Cribl Stream 4.20.1, merged with configured instances from the selected group.
+Existing exclusions still apply. Unconfigured type choices have internal `type:`
+references and are summary-only; they never create or enable a Source. Every choice
+has a plain-language tooltip and selected-choice help beneath the dropdown.

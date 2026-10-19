@@ -156,3 +156,13 @@ test('a slower old location response cannot replace current source choices',asyn
  await page.goto('/');await page.locator('#worker-group').selectOption('default');await page.locator('#worker-group').selectOption('east');await expect(page.locator('#collection-method option[value=new]')).toHaveCount(1);finishOld();
  await expect(page.locator('#collection-method option[value=old]')).toHaveCount(0);
 });
+
+test('source descriptions appear as tooltips and accessible selected help',async({page})=>{
+ await page.route('**/source-catalog.json?*',r=>r.fulfill({json:{collectionMethods:[{key:'type:kafka',label:'Kafka',description:'Read events from Kafka topics.',disabled:false,provisioning:'summary'}]}}));
+ await page.goto('/');await page.locator('#worker-group').selectOption('default');
+ await expect(page.locator('#collection-method option[value="type:kafka"]')).toHaveAttribute('title','Read events from Kafka topics.');
+ await page.locator('#collection-method').selectOption('type:kafka');
+ await expect(page.locator('#source-description')).toHaveText('Read events from Kafka topics.');
+ await page.locator('#worker-group').selectOption('');
+ await expect(page.locator('#source-description')).toBeEmpty();
+});

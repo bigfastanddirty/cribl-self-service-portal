@@ -297,3 +297,12 @@ Changing location clears its choices; stale lookup responses are ignored.
 
 This lists configured Source instances, not all theoretical Cribl types or Collector
 jobs. Friendly type-name aliases are formatting only, not a fixed options catalog.
+
+### Full source types and customer descriptions
+
+`source-types.mjs` contains a versioned catalog observed in the Cribl Stream 4.20.1
+Sources UI, including Collectors. It is merged with live configured instances.
+System*, Cribl*, and Journal Files remain excluded. Unconfigured types are
+summary-only; this catalog never enables or creates sources. Each choice has a
+plain-language tooltip and selected-choice description. Verify the catalog when
+upgrading Cribl; no live source-type discovery endpoint is assumed.

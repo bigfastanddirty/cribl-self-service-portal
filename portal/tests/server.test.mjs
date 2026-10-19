@@ -78,7 +78,7 @@ test('source catalog includes disabled sources and excludes all secret configura
  upstreamStatus=200;
  const response=await get('/source-catalog.json?group=live-east');
  assert.equal(response.status,200);
- const source=JSON.parse(response.body).collectionMethods[0];
+ const source=JSON.parse(response.body).collectionMethods.find(s=>s.key==='source-a');
  assert.equal(source.key,'source-a');assert.equal(source.disabled,true);assert.equal(source.provisioning,'summary');
  assert.doesNotMatch(response.body,/must-not-forward|authTokens|authorization|test-token-only/);
  assert.match(observed.path,/m\/live-east\/system\/inputs\?offset=0&limit=100/);

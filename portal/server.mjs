@@ -1,3 +1,4 @@
+import { sourceTypeChoices } from './source-types.mjs';
 import http from 'node:http';
 import { createNotificationService } from './notification-service.mjs';
 import { loadMailTransport } from './mail-transport.mjs';
@@ -17,7 +18,7 @@ if (process.env.HEC_TARGETS_FILE && process.env.HEC_STATE_DIR) {
 }
 async function sourceChoices(group) {
   if (!(await cribl.workerGroups()).some(g => g.key === group)) throw new Error('Location unavailable');
-  return (await cribl.sources(group)).map(s => ({key:s.key,label:s.label,disabled:s.disabled,provisioning:s.type==='splunk_hec' && !s.disabled && hecTargets[group]?.source===s.key ? 'hec' : 'summary'}));
+  return sourceTypeChoices(await cribl.sources(group), hecTargets[group]);
 }
 let notifications;
 if (process.env.SMTP_CONFIG_FILE && process.env.NOTIFICATION_STATE_DIR) {
