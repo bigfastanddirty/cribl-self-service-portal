@@ -63,3 +63,28 @@ export function initializeDiagnostics(){
  });
  document.getElementById('clear-diagnostics')?.addEventListener('click',()=>{entries.length=0;const area=output();if(area)area.value='';document.getElementById('diagnostic-copy-status')!.textContent='Diagnostics cleared.';});
 }
+const hecStages:Record<string,string>={
+ DISCOVER_SOURCE:'Discovering and validating the selected source',REUSE_TOKEN:'Reusing the previously created ingestion token',QUEUED:'Waiting for another HEC setup to finish',READ_STATE:'Reading private request state',CHECK_WORKERS:'Checking Worker health',READ_SOURCE:'Reading HEC source configuration',CHECK_ENDPOINT:'Validating the ingestion endpoint',CHECK_PENDING_CHANGES:'Checking pending configuration changes',SAVE_REQUEST:'Saving private request state',CREATE_TOKEN:'Creating the ingestion token in Cribl',TOKEN_CREATED:'Token creation confirmed',COMMIT_INPUTS:'Committing the input configuration only',READ_COMMITTED_VERSION:'Reading the committed revision',DEPLOY_INPUTS:'Requesting input deployment',WAIT_WORKER_REVISION:'Waiting for Workers to load the revision',CHECK_TOKEN_ACCEPTANCE:'Checking ingestion-token acceptance',READY:'HEC is ready',READINESS_PENDING:'HEC readiness is still pending',FAILED:'HEC setup failed; check the error diagnostic code',
+};
+export function monitorHecProgress(requestId:string):()=>void {
+ if(!/^[a-f0-9-]{36}$/i.test(requestId))return ()=>{};
+ let active=true,running=false,lastSequence=0;const controller=new AbortController();
+ const poll=async()=>{
+  if(!active || running)return;running=true;
+  try {
+   const response=await fetch('/api/hec-progress?requestId='+encodeURIComponent(requestId),{cache:'no-store',signal:controller.signal});
+   if(!response.ok)return;const data=await response.json();
+   if(!active || !Array.isArray(data.events))return;
+   for(const event of data.events){
+    if(!event || !Object.hasOwn(hecStages,event.stage) || typeof event.time!=='string' || !Number.isFinite(event.elapsedMs))continue;
+    const timestamp=Date.parse(event.time);if(!Number.isFinite(timestamp))continue;
+    if(!Number.isSafeInteger(event.seq) || event.seq<=lastSequence)continue;
+    entries.push(`${new Date(timestamp).toISOString()} HEC ${event.stage} +${Math.round(event.elapsedMs/1000)}s reference=${requestId}\n${hecStages[event.stage]}`);if(entries.length>80)entries.shift();lastSequence=event.seq;
+   }
+   const area=output();if(area)area.value=entries.join('\n\n');
+   const latest=data.events.at(-1);if(latest && Object.hasOwn(hecStages,latest.stage) && Number.isFinite(Date.parse(latest.time))){const status=document.getElementById('hec-progress');if(status)status.textContent=hecStages[latest.stage]+` (${Math.max(0,Math.round((Date.now()-Date.parse(latest.time))/1000))}s in this step).`;}
+  }catch{/* Main request records failures; polling must not hide or replace them. */}finally{running=false;}
+ };
+ void poll();const timer=setInterval(()=>void poll(),2000);
+ return ()=>{active=false;clearInterval(timer);controller.abort();};
+}

@@ -364,3 +364,13 @@ hidden, along with the existing internal/journal exclusions. Type descriptions
 remain available. Automatic enabling was removed; a source disabled after loading
 the page is rejected on submission. Automatic HEC discovery considers enabled
 instances only. No existing Cribl source state is changed by this policy update.
+
+### Live HEC progress while requests are pending
+
+Setup diagnostics now polls a separate, read-only progress endpoint while HEC POST
+is pending. It displays queue waits and the active check/write/readiness stage,
+with elapsed time, and mirrors safe stage events to systemd's journal. Use Copy
+diagnostics without opening developer tools. Progress responses contain only fixed
+stage codes, sequence numbers, timestamps and durations; no source config, entered
+request values or secrets. Status history expires after 30 minutes and is bounded
+in memory. This instrumentation does not change provisioning behavior.

@@ -606,3 +606,16 @@ index invalidates the preview and processing deduplication; resetting or changin
 location/source clears it. Other sources have no required index. This does not
 change source allowedIndexes, token metadata, existing Routes, destination or
 placement, and does not authorize processing commits/deployments or enabling.
+
+## Live HEC progress diagnostics (2026-10-19)
+
+The owner requested more logging for a pending HEC request. Emit fixed, secret-free
+HEC stages to the journal and a read-only progress endpoint keyed by opaque request
+UUID. Track discovery, queue, state, Worker/source/endpoint/pending-change checks,
+token creation, commit, deployment, revision wait, and acceptance. UI polling must
+run separately while the POST is pending, update time spent in the step, and append
+safe stages to the existing copyable panel. Cap in-memory requests at 256, expire
+results after 30 minutes and retain up to 30 stage transitions per request. Never
+serialize request bodies, source config, endpoint URLs, Error objects or secrets.
+Polling stops with submission completion/failure. No Cribl mutation behavior or
+Worker restart permissions are changed by diagnostic instrumentation.

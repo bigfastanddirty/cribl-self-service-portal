@@ -230,3 +230,10 @@ test('HEC index is conditionally required and blocks token creation when blank',
  await page.locator('#hec-index').fill('aquasec');await page.getByRole('button',{name:'Submit request'}).click();await expect(page.getByRole('dialog')).toBeVisible();expect(indices).toEqual(['aquasec']);await expect(page.locator('#review-index')).toHaveText('aquasec');
  await page.locator('#close-hec').click();await expect(page.locator('#preview-button')).toBeEnabled();await page.locator('#collection-method').selectOption('api');await expect(page.locator('#hec-index')).toBeHidden();await expect(page.locator('#hec-index')).not.toHaveAttribute('required','');
 });
+test('pending HEC shows copyable server progress before its response arrives',async({page})=>{
+ await page.route('**/api/hec',()=>{});
+ await page.route('**/api/hec-progress?*',r=>r.fulfill({json:{events:[{seq:1,stage:'CHECK_WORKERS',elapsedMs:2000,time:new Date().toISOString(),token:'never-copy-this'}]}}));
+ await page.goto('/');await complete(page);await page.getByRole('button',{name:'Submit request'}).click();
+ await expect(page.locator('#diagnostic-output')).toHaveValue(/CHECK_WORKERS/,{timeout:6000});
+ expect(await page.locator('#diagnostic-output').inputValue()).not.toContain('never-copy-this');await expect(page.locator('#hec-progress')).toContainText('Checking Worker health');
+});

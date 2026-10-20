@@ -17,6 +17,14 @@ import { createCriblClient, privateCredentials } from './cribl-client.mjs';
 let initialToken;
 if (process.env.CRIBL_TOKEN_FILE) { try { initialToken = (await readFile(process.env.CRIBL_TOKEN_FILE, 'utf8')).trim(); } catch {} }
 const cribl = createCriblClient({ baseUrl: process.env.CRIBL_URL || 'http://127.0.0.1:9000', initialToken: process.env.CRIBL_API_TOKEN || initialToken, credentials: () => privateCredentials(process.env.CRIBL_CREDENTIALS_FILE) });
+const hecProgress=new Map();
+function progress(id,stage) {
+ const now=Date.now();let state=hecProgress.get(id);
+ if(!state || now-state.started>1800000){if(hecProgress.size>=256)hecProgress.delete(hecProgress.keys().next().value);state={started:now,sequence:0,events:[]};hecProgress.set(id,state);}
+ if(state.events.at(-1)?.stage===stage)return;
+ const event={seq:++state.sequence,stage,elapsedMs:now-state.started,time:new Date(now).toISOString()};state.events.push(event);if(state.events.length>30)state.events.shift();
+ console.error(JSON.stringify({event:'hec-progress',reference:id,...event}));
+}
 let hec;
 const hecTargets = Object.assign(Object.create(null),process.env.HEC_TARGETS_FILE ? JSON.parse(await readFile(process.env.HEC_TARGETS_FILE,'utf8')) : {});
 const configuredHecTargets = structuredClone(hecTargets);
@@ -62,6 +70,7 @@ const server = http.createServer(async (req, res) => {
   let urlPath;
   try { urlPath = decodeURIComponent(new URL(req.url, 'http://localhost').pathname); }
   catch { error(400); return; }
+  if(urlPath==='/api/hec-progress' && req.method==='GET'){const id=new URL(req.url,'http://localhost').searchParams.get('requestId');if(!validRequestId(id)){error(400);return;}const state=hecProgress.get(id);res.writeHead(200,{'Content-Type':'application/json; charset=utf-8'});res.end(JSON.stringify({events:state && Date.now()-state.started<1800000?state.events:[]}));return;}
   if (urlPath === '/api/json-setup' && req.method === 'POST') {
     const json = (status,data) => {res.writeHead(status,{'Content-Type':'application/json; charset=utf-8'});res.end(JSON.stringify(data));};
     if(req.headers.origin !== 'http://' + req.headers.host || (req.headers['sec-fetch-site'] && req.headers['sec-fetch-site'] !== 'same-origin')) {json(403,{message:'Open the portal directly to submit.'});return;}
@@ -113,12 +122,13 @@ const server = http.createServer(async (req, res) => {
       if (!input || typeof input.group !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(input.group) || !validRequestId(input.requestId) || typeof input.source !== 'string' || typeof input.barometerId !== 'string' || !input.barometerId.trim() || input.barometerId.trim().length > 128 || /[\x00-\x1f\x7f]/.test(input.barometerId) || Object.keys(input).some(key => !['group', 'requestId', 'barometerId', 'source', 'index'].includes(key))) throw new Error();
       if(!validHecIndex(input.index))throw new Error();
     } catch { json(400, { message: 'Invalid credential request.' }); return; }
+    progress(input.requestId,'DISCOVER_SOURCE');
     try {const choices=await sourceChoices(input.group);if(!choices.some(s=>s.key===input.source && s.provisioning==='hec')){diagnostic('HEC_TARGET_UNAVAILABLE');json(400,{message:'No unambiguous approved HEC target is available.'});return;}}catch(failure){diagnostic(diagnosticCode(failure));json(503,{message:'HEC source discovery failed.'});return;}
     if (!hec) { diagnostic('HEC_TARGET_UNAVAILABLE');json(503, { message: 'HEC setup is unavailable for this location.' }); return; }
     let replied = false;
     const reply = (status, data) => { if (!replied) { replied = true; json(status, data); } };
-    try { reply(200, await hec.create(input.group, input.requestId, credentials => reply(202, { ...credentials, status: 'pending' }))); }
-    catch (failure) { if (failure.code === 'HEC_PENDING') { reply(202, { status: 'pending' }); return; } diagnostic(diagnosticCode(failure));reply(503, { message: 'HEC setup could not be completed. Retry the same request; if it still fails, contact your portal administrator. A pending token may already exist.' }); }
+    try { reply(200, await hec.create(input.group, input.requestId, credentials => reply(202, { ...credentials, status: 'pending' }),stage=>progress(input.requestId,stage))); }
+    catch (failure) {progress(input.requestId,failure.code==='HEC_PENDING'?'READINESS_PENDING':'FAILED'); if (failure.code === 'HEC_PENDING') { reply(202, { status: 'pending' }); return; } diagnostic(diagnosticCode(failure));reply(503, { message: 'HEC setup could not be completed. Retry the same request; if it still fails, contact your portal administrator. A pending token may already exist.' }); }
     return;
   }
   if (!['GET', 'HEAD'].includes(req.method)) { res.setHeader('Allow', 'GET, HEAD'); error(405); return; }

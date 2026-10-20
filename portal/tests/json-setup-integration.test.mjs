@@ -35,5 +35,9 @@ test('HTTP setup accepts confirmed token creation before HEC readiness and write
   assert.deepEqual(writes,[['POST','/m/default/pipelines'],['PATCH','/m/default/routes/default']]);
   assert.equal(table.routes[0].name,'Akamai Audit');assert.equal(table.routes[0].filter,"__inputId=='splunk_hec:in_hec' && index.includes('aquasec')");assert.equal(table.routes[1].id,'default');
   assert.equal((await send(payload)).status,200);assert.equal(writes.length,2);
+  // The mock deliberately has no Worker endpoint: confirm the waiting stage is observable.
+  const hecResponse=await fetch('http://127.0.0.1:4181/api/hec',{method:'POST',headers:{origin:'http://127.0.0.1:4181','content-type':'application/json'},body:JSON.stringify({group:'default',source:'in_hec',requestId:hecId,barometerId:'BAR-1',index:'aquasec'})});assert.equal(hecResponse.status,503);
+  const progress=await (await fetch('http://127.0.0.1:4181/api/hec-progress?requestId='+hecId)).json();
+  assert.ok(progress.events.some(e=>e.stage==='CHECK_WORKERS'));assert.equal(progress.events.at(-1).stage,'FAILED');assert.doesNotMatch(JSON.stringify(progress),/not-for-browser|authTokens|BAR-1|aquasec/);assert.equal(writes.length,2);
  }finally{if(child.exitCode===null && child.signalCode===null){child.kill();await new Promise(r=>child.once('exit',r));}await new Promise(r=>upstream.close(r));await rm(dir,{recursive:true,force:true});}
 });

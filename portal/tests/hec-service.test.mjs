@@ -108,3 +108,8 @@ test('readiness retry tolerates processing drafts after the token commit without
  f.setPending();f.setReady(true);const result=await f.service.create('default',ID);assert.equal(result.token,'new-secret');
  assert.equal(f.calls.filter(c=>c.path.endsWith('/version/commit')).length,commits);
 });
+test('reports safe stages in order without passing token or source configuration to logger',async()=>{
+ const f=fixture(),stages=[];await f.service.create('default',ID,undefined,stage=>stages.push(stage));
+ assert.equal(stages[0],'QUEUED');assert.ok(stages.indexOf('CREATE_TOKEN')<stages.indexOf('TOKEN_CREATED'));assert.ok(stages.indexOf('COMMIT_INPUTS')<stages.indexOf('READY'));
+ assert.doesNotMatch(JSON.stringify(stages),/secret|8088|authTokens/);
+});

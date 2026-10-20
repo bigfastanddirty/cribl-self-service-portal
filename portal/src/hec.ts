@@ -1,4 +1,4 @@
-import { diagnosticFetch } from './diagnostics';
+import { diagnosticFetch, monitorHecProgress } from './diagnostics';
 export function initializeHec(group: HTMLSelectElement, method: HTMLSelectElement, form: HTMLFormElement): { submit: (onTokenCreated?: (id:string)=>Promise<void>) => Promise<string | undefined>; busy: () => boolean } {
   const find = <T extends HTMLElement>(id: string) => document.getElementById(id)! as T;
   const section = find('hec-action');
@@ -42,6 +42,7 @@ export function initializeHec(group: HTMLSelectElement, method: HTMLSelectElemen
     const previousDisabled = controls.map(control => control.disabled);
     find('hec-progress').textContent = 'Setting up your connection. This may take a few minutes. Keep this page open.';
     busy = true; error.hidden = true; controls.forEach(control => control.disabled = true); submitButton.textContent = 'Submitting…'; find('hec-progress').hidden = false;
+    const stopProgress=monitorHecProgress(requestId!);
     try {
       let displayed = false;
       if (credentials) { showCredentials(); displayed = true; }
@@ -69,6 +70,6 @@ export function initializeHec(group: HTMLSelectElement, method: HTMLSelectElemen
         return requestId;
       }
     } catch { if (credentials) find('hec-dialog-status').textContent = 'Token created, but deployment is not confirmed. Retry this request before using it.'; error.hidden = false; error.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
-    finally { find('hec-progress').hidden = true; busy = false; controls.forEach((control,index) => control.disabled = previousDisabled[index]); submitButton.textContent = 'Submit request'; }
+    finally { stopProgress();find('hec-progress').hidden = true; busy = false; controls.forEach((control,index) => control.disabled = previousDisabled[index]); submitButton.textContent = 'Submit request'; }
   } };
 }

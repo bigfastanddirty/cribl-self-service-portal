@@ -98,3 +98,9 @@ test('HEC index is validated before token setup',async()=>{
   assert.equal((await get('/api/hec','POST',headers,JSON.stringify(payload))).status,400);
  }
 });
+test('progress lookup is bounded to valid opaque IDs and returns no request contents',async()=>{
+ assert.equal((await get('/api/hec-progress?requestId=bad')).status,400);
+ const response=await get('/api/hec-progress?requestId=11111111-1111-4111-8111-111111111111');
+ assert.equal(response.status,200);assert.deepEqual(JSON.parse(response.body),{events:[]});
+ assert.doesNotMatch(response.body,/authTokens|test-token-only|must-not-forward/);
+});
