@@ -125,10 +125,8 @@ const server = http.createServer(async (req, res) => {
     progress(input.requestId,'DISCOVER_SOURCE');
     try {const choices=await sourceChoices(input.group);if(!choices.some(s=>s.key===input.source && s.provisioning==='hec')){diagnostic('HEC_TARGET_UNAVAILABLE');json(400,{message:'No unambiguous approved HEC target is available.'});return;}}catch(failure){diagnostic(diagnosticCode(failure));json(503,{message:'HEC source discovery failed.'});return;}
     if (!hec) { diagnostic('HEC_TARGET_UNAVAILABLE');json(503, { message: 'HEC setup is unavailable for this location.' }); return; }
-    let replied = false;
-    const reply = (status, data) => { if (!replied) { replied = true; json(status, data); } };
-    try { reply(200, await hec.create(input.group, input.requestId, credentials => reply(202, { ...credentials, status: 'pending' }),stage=>progress(input.requestId,stage))); }
-    catch (failure) {progress(input.requestId,failure.code==='HEC_PENDING'?'READINESS_PENDING':'FAILED'); if (failure.code === 'HEC_PENDING') { reply(202, { status: 'pending' }); return; } diagnostic(diagnosticCode(failure));reply(503, { message: 'HEC setup could not be completed. Retry the same request; if it still fails, contact your portal administrator. A pending token may already exist.' }); }
+    try {const saved=await hec.create(input.group,input.requestId,undefined,stage=>progress(input.requestId,stage));res.setHeader('X-Portal-Diagnostic','HEC_SAVED');json(200,saved);}
+    catch(failure){progress(input.requestId,'FAILED');diagnostic(diagnosticCode(failure));json(503,{message:'HEC token save could not be confirmed. Retry the same request or contact your administrator. Nothing was committed or deployed.'});}
     return;
   }
   if (!['GET', 'HEAD'].includes(req.method)) { res.setHeader('Allow', 'GET, HEAD'); error(405); return; }

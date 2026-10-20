@@ -184,3 +184,19 @@ identifies __inputId as an internal event field and describes its default index
 behavior; the documented [source identifier format](https://docs.cribl.io/search/organize-data/)
 is type:id. The substring filter expects string index metadata as in HEC events.
 No uploaded samples or synthetic live events are sent to Cribl for this change.
+
+### Save-only submission (2026-10-19)
+
+The owner removed automatic deployment entirely, including HEC credential commits.
+The portal now saves the additive token to the Leader, reads it back, then saves
+the cloned pipeline and filtered Route. It does not require Workers to be healthy,
+probe ingestion endpoints, commit, deploy or restart anything. The Cribl adapter
+also rejects commit/deploy/restart writes. Existing pending configuration no longer
+blocks a token-only additive save; the portal never commits those unrelated drafts.
+
+HTTP 200 `status: saved` and `deployed: false` describe the operation, not proof of
+Worker ingestion readiness. The popup instructs administrator review/deployment
+before sending logs. Saved-token existence is checked on retry; removal or disabling
+requires administrator review rather than silent recreation. Private state retains
+`saved` and `tokenCreated` separately from legacy readiness flags. No automatic mail
+is enabled. Earlier automatic deployment/readiness sections are superseded.

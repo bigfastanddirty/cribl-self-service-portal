@@ -72,16 +72,9 @@ test('five-question form and popup fit small screens',async({page})=>{
  await page.goto('/');await complete(page);await page.getByRole('button',{name:'Submit request'}).click();await expect(page.getByRole('dialog')).toBeVisible();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
-test('slow deployment automatically rechecks the same request and shows credentials',async({page})=>{
- const ids:string[]=[];
- await page.route('**/api/hec',async r=>{
-  ids.push(r.request().postDataJSON().requestId);
-  await r.fulfill(ids.length===1?{status:202,json:{status:'pending'}}:{json:{endpoint:'http://example:8088/services/collector',token:'test-only-token'}});
- });
- await page.goto('/');await complete(page);await page.getByRole('button',{name:'Submit request'}).click();
- await expect(page.getByRole('dialog')).toBeVisible({timeout:15000});
- expect(ids).toHaveLength(2);expect(ids[0]).toBe(ids[1]);
- await expect(page.locator('#hec-token')).toHaveText('test-only-token');
+test('saved HEC credentials need only one request and no readiness polling',async({page})=>{
+ let calls=0;await page.route('**/api/hec',r=>{calls++;return r.fulfill({json:{status:'saved',deployed:false,endpoint:'http://example.com',token:'test-only'}});});
+ await page.goto('/');await complete(page);await page.getByRole('button',{name:'Submit request'}).click();await expect(page.getByRole('dialog')).toBeVisible();await expect(page.locator('#hec-dialog-status')).toContainText('No commit or deployment');expect(calls).toBe(1);
 });
 
 test('email is the first required question and summary contains the requester',async({page})=>{
@@ -109,19 +102,9 @@ test('missing mail configuration is reported without claiming delivery',async({p
  await expect(page.locator('#email-status')).toContainText('not configured yet');
  await expect(page.locator('#email-status')).not.toContainText('Summary emailed');
 });
-test('shows a newly created token while deployment is pending and updates readiness',async({page})=>{
- let calls=0;let finish:()=>void=()=>{};
- await page.route('**/api/hec',async r=>{
-  calls++;
-  if(calls===1)return r.fulfill({status:202,json:{status:'pending',endpoint:'http://example:8088/services/collector',token:'test-only-token'}});
-  await new Promise<void>(resolve=>finish=resolve);
-  await r.fulfill({json:{endpoint:'http://example:8088/services/collector',token:'test-only-token'}});
- });
- await page.goto('/');await complete(page);await page.getByRole('button',{name:'Submit request'}).click();
- await expect(page.getByRole('dialog')).toBeVisible();await expect(page.locator('#hec-token')).toHaveText('test-only-token');
- await expect(page.locator('#hec-dialog-status')).toContainText('Deployment is pending');
- await expect.poll(()=>calls,{timeout:10000}).toBe(2);finish();
- await expect(page.locator('#hec-dialog-status')).toContainText('ready to use');
+test('saved token popup does not claim deployment or readiness',async({page})=>{
+ await page.route('**/api/hec',r=>r.fulfill({json:{status:'saved',deployed:false,endpoint:'http://example.com',token:'test-only'}}));
+ await page.goto('/');await complete(page);await page.getByRole('button',{name:'Submit request'}).click();await expect(page.locator('#hec-token')).toHaveText('test-only');await expect(page.locator('#hec-dialog-status')).toContainText('review and deploy');await expect(page.locator('#hec-dialog-status')).not.toContainText('ready to use');
 });
 test('BarometerIT is required, included in the summary, and cleared on reset',async({page})=>{
  let posts=0;await page.route('**/api/summary',r=>{posts++;expect(r.request().postDataJSON().barometerId).toBe('BAR-12345');return r.fulfill({json:{status:'sent'}});});
@@ -211,15 +194,11 @@ test('disabled mapped HEC is hidden and cannot start setup',async({page})=>{
  await page.route('**/api/hec',r=>{posts++;return r.fulfill({status:500});});
  await page.goto('/');await page.locator('#worker-group').selectOption('default');await expect(page.locator('#collection-method')).toBeDisabled();expect(posts).toBe(0);
 });
-test('pipeline and route start on token creation while HEC readiness is pending',async({page})=>{
+test('pipeline and route are saved immediately after saved credentials',async({page})=>{
  let hecCalls=0,processingCalls=0;
- await page.route('**/api/hec',r=>{hecCalls++;return r.fulfill({status:hecCalls===1?202:200,json:{endpoint:'http://example.com',token:'test-only',status:'pending'}});});
+ await page.route('**/api/hec',r=>{hecCalls++;return r.fulfill({json:{endpoint:'http://example.com',token:'test-only',status:'saved'}});});
  await page.route('**/api/json-setup',r=>{processingCalls++;return r.fulfill({json:{status:'created',deployed:false}});});
- await page.goto('/');await complete(page);await page.getByRole('button',{name:'Submit request'}).click();
- await expect(page.locator('#processing-status')).toContainText('not committed or deployed');
- expect(hecCalls).toBe(1);expect(processingCalls).toBe(1);
- await expect(page.locator('#hec-dialog-status')).toContainText('Deployment is pending');
- await expect(page.locator('#hec-dialog-status')).toContainText('ready to use',{timeout:10000});expect(processingCalls).toBe(1);
+ await page.goto('/');await complete(page);await page.getByRole('button',{name:'Submit request'}).click();await expect(page.locator('#processing-status')).toContainText('not committed or deployed');expect(hecCalls).toBe(1);expect(processingCalls).toBe(1);
 });
 test('HEC index is conditionally required and blocks token creation when blank',async({page})=>{
  let posts=0;const indices:string[]=[];
@@ -232,8 +211,8 @@ test('HEC index is conditionally required and blocks token creation when blank',
 });
 test('pending HEC shows copyable server progress before its response arrives',async({page})=>{
  await page.route('**/api/hec',()=>{});
- await page.route('**/api/hec-progress?*',r=>r.fulfill({json:{events:[{seq:1,stage:'CHECK_WORKERS',elapsedMs:2000,time:new Date().toISOString(),token:'never-copy-this'}]}}));
+ await page.route('**/api/hec-progress?*',r=>r.fulfill({json:{events:[{seq:1,stage:'READ_SOURCE',elapsedMs:2000,time:new Date().toISOString(),token:'never-copy-this'}]}}));
  await page.goto('/');await complete(page);await page.getByRole('button',{name:'Submit request'}).click();
- await expect(page.locator('#diagnostic-output')).toHaveValue(/CHECK_WORKERS/,{timeout:6000});
- expect(await page.locator('#diagnostic-output').inputValue()).not.toContain('never-copy-this');await expect(page.locator('#hec-progress')).toContainText('Checking Worker health');
+ await expect(page.locator('#diagnostic-output')).toHaveValue(/READ_SOURCE/,{timeout:6000});
+ expect(await page.locator('#diagnostic-output').inputValue()).not.toContain('never-copy-this');await expect(page.locator('#hec-progress')).toContainText('Reading HEC source configuration');
 });

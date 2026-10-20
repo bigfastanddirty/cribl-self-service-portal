@@ -40,6 +40,7 @@ export function createCriblClient({ baseUrl, credentials, initialToken, fetchImp
   async function token() { return current && current.expires > now() ? current : login(); }
   async function request(path, method = 'GET', body) {
     const route = path.split('?')[0];
+    if(method!=='GET' && (/\/(deploy|restart)$/.test(route) || /\/version(?:\/(?:status|commit))?$/.test(route)))throw new Error('Commit, deployment and restart operations are disabled');
     if(/^\/m\/[A-Za-z0-9_-]+\/system\/inputs\/[A-Za-z0-9_-]+$/.test(route) && method!=='GET')throw new Error('Source configuration updates are not supported');
     const processing = /^\/m\/[a-zA-Z0-9_-]+\/(pipelines(?:\/[a-zA-Z0-9_-]+)?|routes\/default)$/.exec(route);
     if(processing && !((route.endsWith('/pipelines') && method==='POST') || (!route.endsWith('/pipelines') && method==='GET') || (route.endsWith('/routes/default') && method==='PATCH'))) throw new Error('Unsupported processing operation');

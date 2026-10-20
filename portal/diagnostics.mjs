@@ -3,6 +3,8 @@ const known = new Map([
  ['Pending configuration changes require administrator review','CRIBL_PENDING_CHANGES'],
  ['No healthy Worker is available for this location','NO_HEALTHY_WORKER'],
  ['HEC is not enabled for this location','HEC_SOURCE_NOT_READY'],
+ ['HEC token save could not be verified','HEC_SAVE_UNCONFIRMED'],
+ ['Saved HEC token changed; administrator review required','HEC_TOKEN_CHANGED'],
  ['HEC source enabling could not be verified','HEC_ENABLE_UNCONFIRMED'],
  ['HEC endpoint mapping does not match its source','HEC_ENDPOINT_MISMATCH'],
  ['Private state directory required','PRIVATE_STATE_PERMISSION'],

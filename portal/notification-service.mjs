@@ -25,13 +25,13 @@ export function createNotificationService({from,store,workerGroups,sources,hecSt
    if(input.hecRequestId && !provisionsHec)throw Object.assign(new Error('Source setup policy changed'),{code:'INVALID'});
    if(provisionsHec){
     const hec=input.hecRequestId && await hecStore?.get(input.hecRequestId);
-    if(!hec?.complete || hec.group!==input.group)throw Object.assign(new Error('HEC setup not complete'),{code:'INVALID'});
+    if(!(hec?.saved || hec?.tokenCreated || hec?.complete) || hec.group!==input.group)throw Object.assign(new Error('HEC token is not saved'),{code:'INVALID'});
    }
    const method=selected.label;
    const message={from,to:input.email,cc:'zcars@allstate.com',replyTo:input.email,
     subject:'Cribl Self Service — logging request',
     messageId:'<'+input.requestId+'@cribl-self-service.local>',
-    text:['Cribl Self Service — logging request','', 'Requester: '+input.email,'Application / logs: '+(input.applicationName?.trim()||'Not supplied'),'BarometerIT: '+input.barometerId.trim(),'Data location: '+location.label,'Collection method: '+method,...(input.index?['Index contains: '+input.index.trim()]:[]),'Expected daily volume: '+Number(volume.value)+' '+volume.unit+' per day','',provisionsHec?'HEC setup completed. Credentials were displayed privately in the portal.':'Request summary only. No Cribl configuration was changed.','No log samples or credentials are included in this email.','Request reference: '+input.requestId].join('\n')};
+    text:['Cribl Self Service — logging request','', 'Requester: '+input.email,'Application / logs: '+(input.applicationName?.trim()||'Not supplied'),'BarometerIT: '+input.barometerId.trim(),'Data location: '+location.label,'Collection method: '+method,...(input.index?['Index contains: '+input.index.trim()]:[]),'Expected daily volume: '+Number(volume.value)+' '+volume.unit+' per day','',provisionsHec?'HEC credentials saved for administrator review. This request did not commit or deploy configuration.':'Request summary only. No Cribl configuration was changed.','No log samples or credentials are included in this email.','Request reference: '+input.requestId].join('\n')};
    await store.put(input.requestId,{digest,status:'sending'});
    let result;
    try{result=await send(message);}catch(error){

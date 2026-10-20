@@ -88,3 +88,8 @@ test('source pagination reads every page without exposing token fields',async()=
  }});
  const sources=await client.sources('default');assert.equal(sources.length,101);assert.deepEqual(offsets,[0,100]);assert.doesNotMatch(JSON.stringify(sources),/secret/);
 });
+test('commit, deploy and restart writes are rejected before network access',async()=>{
+ let calls=0;const client=createCriblClient({baseUrl:'http://localhost',initialToken:'fake',fetchImpl:async()=>{calls++;throw new Error('Unexpected call');}});
+ for(const [path,method] of [['/m/default/version/commit','POST'],['/products/stream/groups/default/deploy','PATCH'],['/products/stream/workers/restart','PATCH']])await assert.rejects(client.request(path,method,{}),/disabled/);
+ assert.equal(calls,0);
+});

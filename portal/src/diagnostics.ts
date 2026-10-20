@@ -5,6 +5,9 @@ const explanations:Record<string,string>={
  PRIVATE_STATE_PERMISSION:'Private request-state directory must be owner-only.',
  HEC_COMMIT_UNCONFIRMED:'HEC commit could not be verified. Retry the same request.',
  HEC_ENABLE_UNCONFIRMED:'Could not verify enabling the mapped HEC source. Retry the same request or contact your administrator.',
+ HEC_SAVE_UNCONFIRMED:'The token save could not be verified. Retry the same request; do not create another request.',
+ HEC_TOKEN_CHANGED:'Previously saved token changed or was removed. Administrator review is required.',
+ HEC_SAVED:'HEC token saved. No commit or deployment was performed.',
  EMAIL_PAUSED:'Email delivery is intentionally paused; no message was sent.',
  EMAIL_UNAVAILABLE:'Email is paused: SMTP relay is not configured.',
  SOURCE_SUMMARY_ONLY:'Selected source is summary-only. Token, pipeline and route setup were not attempted.',
@@ -64,7 +67,7 @@ export function initializeDiagnostics(){
  document.getElementById('clear-diagnostics')?.addEventListener('click',()=>{entries.length=0;const area=output();if(area)area.value='';document.getElementById('diagnostic-copy-status')!.textContent='Diagnostics cleared.';});
 }
 const hecStages:Record<string,string>={
- DISCOVER_SOURCE:'Discovering and validating the selected source',REUSE_TOKEN:'Reusing the previously created ingestion token',QUEUED:'Waiting for another HEC setup to finish',READ_STATE:'Reading private request state',CHECK_WORKERS:'Checking Worker health',READ_SOURCE:'Reading HEC source configuration',CHECK_ENDPOINT:'Validating the ingestion endpoint',CHECK_PENDING_CHANGES:'Checking pending configuration changes',SAVE_REQUEST:'Saving private request state',CREATE_TOKEN:'Creating the ingestion token in Cribl',TOKEN_CREATED:'Token creation confirmed',COMMIT_INPUTS:'Committing the input configuration only',READ_COMMITTED_VERSION:'Reading the committed revision',DEPLOY_INPUTS:'Requesting input deployment',WAIT_WORKER_REVISION:'Waiting for Workers to load the revision',CHECK_TOKEN_ACCEPTANCE:'Checking ingestion-token acceptance',READY:'HEC is ready',READINESS_PENDING:'HEC readiness is still pending',FAILED:'HEC setup failed; check the error diagnostic code',
+ SAVED:'HEC token saved; no commit or deployment performed',VERIFY_TOKEN_SAVED:'Verifying token was saved in the Leader configuration',DISCOVER_SOURCE:'Discovering and validating the selected source',REUSE_TOKEN:'Reusing the previously created ingestion token',QUEUED:'Waiting for another HEC setup to finish',READ_STATE:'Reading private request state',CHECK_WORKERS:'Checking Worker health',READ_SOURCE:'Reading HEC source configuration',CHECK_ENDPOINT:'Validating the ingestion endpoint',CHECK_PENDING_CHANGES:'Checking pending configuration changes',SAVE_REQUEST:'Saving private request state',CREATE_TOKEN:'Creating the ingestion token in Cribl',TOKEN_CREATED:'Token creation confirmed',COMMIT_INPUTS:'Committing the input configuration only',READ_COMMITTED_VERSION:'Reading the committed revision',DEPLOY_INPUTS:'Requesting input deployment',WAIT_WORKER_REVISION:'Waiting for Workers to load the revision',CHECK_TOKEN_ACCEPTANCE:'Checking ingestion-token acceptance',READY:'HEC is ready',READINESS_PENDING:'HEC readiness is still pending',FAILED:'HEC setup failed; check the error diagnostic code',
 };
 export function monitorHecProgress(requestId:string):()=>void {
  if(!/^[a-f0-9-]{36}$/i.test(requestId))return ()=>{};

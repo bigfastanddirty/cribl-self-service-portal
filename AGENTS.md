@@ -619,3 +619,18 @@ results after 30 minutes and retain up to 30 stage transitions per request. Neve
 serialize request bodies, source config, endpoint URLs, Error objects or secrets.
 Polling stops with submission completion/failure. No Cribl mutation behavior or
 Worker restart permissions are changed by diagnostic instrumentation.
+
+## Save-only Cribl changes (2026-10-19)
+
+The owner revoked automatic commits and deployments. HEC submission now only saves
+its additive token in the Leader configuration and verifies that token entry by
+read-back. Preserve enabled-source, mapping, input validation, token preservation,
+private journals and retry guards. Do not require healthy Workers, call ingestion
+readiness checks, commit, deploy or restart. Reject these write operations in the
+Cribl adapter as a backstop. Existing pending drafts may coexist because nothing
+is committed/deployed by the portal. Pipelines/Routes continue to be saved for
+administrator review with no commit or deployment. The credential popup must say
+saved, not ready/deployed, and require administrator review before sending logs.
+Legacy journals can be reused only after verifying their token still exists in the
+selected source. Never silently recreate a removed/disabled saved token. Mail stays
+paused. This supersedes all earlier automatic HEC commit/deploy/readiness behavior.

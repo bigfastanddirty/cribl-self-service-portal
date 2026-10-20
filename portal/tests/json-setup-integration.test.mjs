@@ -5,7 +5,7 @@ test('HTTP setup accepts confirmed token creation before HEC readiness and write
  const dir=await mkdtemp(path.join(os.tmpdir(),'json-setup-test-'));
  const hecId='22222222-2222-4222-8222-222222222222',requestId='11111111-1111-4111-8111-111111111111';
  await mkdir(path.join(dir,'hec'),{mode:0o700});
- await writeFile(path.join(dir,'hec',hecId+'.json'),JSON.stringify({group:'default',complete:false,tokenCreated:true}),{mode:0o600});
+ await writeFile(path.join(dir,'hec',hecId+'.json'),JSON.stringify({group:'default',source:'in_hec',endpoint:'http://hec.allstate.com:8088/services/collector',token:'private-test',complete:false,tokenCreated:true}),{mode:0o600});
  await writeFile(path.join(dir,'targets.json'),JSON.stringify({}),{mode:0o600});
  const pipelines=new Map([['pl_json',{id:'pl_json',conf:{functions:[{id:'eval',conf:{add:[{name:'BarometerIT',value:'"template"'}]}}]}}]]);
  let table={id:'default',routes:[{id:'default',name:'default',filter:'true',final:true,output:'default',pipeline:'main'}]};const writes=[];
@@ -30,7 +30,7 @@ test('HTTP setup accepts confirmed token creation before HEC readiness and write
   assert.equal((await send({...payload,source:'not-approved'})).status,400);assert.equal(writes.length,0);
   const catalog=await fetch('http://127.0.0.1:4181/source-catalog.json?group=default');const catalogText=await catalog.text();assert.equal(JSON.parse(catalogText).collectionMethods.find(s=>s.key==='in_hec').provisioning,'hec');assert.doesNotMatch(catalogText,/not-for-browser|authTokens|splunkHecAPI/);
   await writeFile(path.join(dir,'hec',hecId+'.json'),JSON.stringify({group:'default',complete:false}),{mode:0o600});assert.equal((await send(payload)).status,400);assert.equal(writes.length,0);
-  await writeFile(path.join(dir,'hec',hecId+'.json'),JSON.stringify({group:'default',complete:false,tokenCreated:true}),{mode:0o600});
+  await writeFile(path.join(dir,'hec',hecId+'.json'),JSON.stringify({group:'default',source:'in_hec',endpoint:'http://hec.allstate.com:8088/services/collector',token:'private-test',complete:false,tokenCreated:true}),{mode:0o600});
   const response=await send(payload);assert.equal(response.status,200);assert.equal((await response.json()).deployed,false);
   assert.deepEqual(writes,[['POST','/m/default/pipelines'],['PATCH','/m/default/routes/default']]);
   assert.equal(table.routes[0].name,'Akamai Audit');assert.equal(table.routes[0].filter,"__inputId=='splunk_hec:in_hec' && index.includes('aquasec')");assert.equal(table.routes[1].id,'default');
@@ -38,6 +38,6 @@ test('HTTP setup accepts confirmed token creation before HEC readiness and write
   // The mock deliberately has no Worker endpoint: confirm the waiting stage is observable.
   const hecResponse=await fetch('http://127.0.0.1:4181/api/hec',{method:'POST',headers:{origin:'http://127.0.0.1:4181','content-type':'application/json'},body:JSON.stringify({group:'default',source:'in_hec',requestId:hecId,barometerId:'BAR-1',index:'aquasec'})});assert.equal(hecResponse.status,503);
   const progress=await (await fetch('http://127.0.0.1:4181/api/hec-progress?requestId='+hecId)).json();
-  assert.ok(progress.events.some(e=>e.stage==='CHECK_WORKERS'));assert.equal(progress.events.at(-1).stage,'FAILED');assert.doesNotMatch(JSON.stringify(progress),/not-for-browser|authTokens|BAR-1|aquasec/);assert.equal(writes.length,2);
+  assert.ok(progress.events.some(e=>e.stage==='READ_SOURCE'));assert.equal(progress.events.at(-1).stage,'FAILED');assert.doesNotMatch(JSON.stringify(progress),/not-for-browser|authTokens|BAR-1|aquasec/);assert.equal(writes.length,2);
  }finally{if(child.exitCode===null && child.signalCode===null){child.kill();await new Promise(r=>child.once('exit',r));}await new Promise(r=>upstream.close(r));await rm(dir,{recursive:true,force:true});}
 });

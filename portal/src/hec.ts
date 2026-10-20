@@ -8,16 +8,16 @@ export function initializeHec(group: HTMLSelectElement, method: HTMLSelectElemen
   const controls = [find<HTMLInputElement>('barometer-id'), find<HTMLInputElement>('requester-email'), group, method, find<HTMLInputElement>('daily-volume'), find<HTMLSelectElement>('volume-unit'), submitButton, form.querySelector<HTMLButtonElement>('button[type=reset]')!, find<HTMLButtonElement>('retry-catalog')];
   let requestId: string | undefined;
   let credentials: { endpoint: string; token: string } | undefined;
-  let ready = false;
+  let saved = false;
   let busy = false;
   function clearDialog() { find('hec-endpoint').textContent = ''; find('hec-token').textContent = ''; find('hec-copy-status').textContent = ''; }
   function isHec() { return method.selectedOptions[0]?.dataset.provisioning === 'hec'; }
   function render() { section.hidden = !isHec();find<HTMLInputElement>('hec-index').required=isHec();find<HTMLInputElement>('hec-index').disabled=!isHec(); }
-  function reset() { find<HTMLInputElement>('hec-index').value='';requestId = undefined; credentials = undefined; ready = false; error.hidden = true; dialog.close(); clearDialog(); render(); }
+  function reset() { find<HTMLInputElement>('hec-index').value='';requestId = undefined; credentials = undefined; saved = false; error.hidden = true; dialog.close(); clearDialog(); render(); }
   function showCredentials() {
     find('hec-endpoint').textContent = credentials!.endpoint;
     find('hec-token').textContent = credentials!.token;
-    find('hec-dialog-status').textContent = ready ? 'Your token is deployed and ready to use.' : 'Token created. Deployment is pending; wait for readiness before sending logs.';
+    find('hec-dialog-status').textContent = 'Token saved in Cribl. No commit or deployment was performed. Ask your administrator to review and deploy before sending logs.';
     if (!dialog.open) dialog.showModal();
   }
   group.addEventListener('change', reset); method.addEventListener('change', reset);
@@ -32,7 +32,7 @@ export function initializeHec(group: HTMLSelectElement, method: HTMLSelectElemen
   render();
   return { busy: () => busy, async submit(onTokenCreated?: (id:string)=>Promise<void>) {
     if (busy || !group.value || !isHec()) return;
-    if (credentials && ready) { showCredentials(); if(requestId)await onTokenCreated?.(requestId);return requestId; }
+    if (credentials && saved) { showCredentials(); if(requestId)await onTokenCreated?.(requestId);return requestId; }
     // getRandomValues also works on the development portal's LAN HTTP origin.
     if (!requestId) {
       const bytes = crypto.getRandomValues(new Uint8Array(16)); bytes[6] = (bytes[6] & 15) | 64; bytes[8] = (bytes[8] & 63) | 128;
@@ -40,36 +40,21 @@ export function initializeHec(group: HTMLSelectElement, method: HTMLSelectElemen
       requestId = `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
     }
     const previousDisabled = controls.map(control => control.disabled);
-    find('hec-progress').textContent = 'Setting up your connection. This may take a few minutes. Keep this page open.';
+    find('hec-progress').textContent = 'Saving HEC credentials in Cribl…';
     busy = true; error.hidden = true; controls.forEach(control => control.disabled = true); submitButton.textContent = 'Submitting…'; find('hec-progress').hidden = false;
     const stopProgress=monitorHecProgress(requestId!);
     try {
       let displayed = false;
       if (credentials) { showCredentials(); displayed = true; }
-      const deadline = Date.now() + 10 * 60 * 1000;
-      while (true) {
-        const response = await diagnosticFetch('/api/hec', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ group: group.value, requestId, source:method.value, index:find<HTMLInputElement>('hec-index').value.trim(), barometerId: find<HTMLInputElement>('barometer-id').value.trim() }), cache: 'no-store' });
-        if (response.status === 202) {
-          const pending = await response.json();
-          if (typeof pending.endpoint === 'string' && typeof pending.token === 'string' && pending.token) {
-            credentials = { endpoint: pending.endpoint, token: pending.token };
-            if (!displayed) { showCredentials(); displayed = true; }
-            await onTokenCreated?.(requestId!);
-          }
-          if (Date.now() >= deadline) throw new Error();
-          await new Promise(resolve => setTimeout(resolve, 5000));
-          continue;
-        }
-        if (!response.ok) throw new Error();
-        const data = await response.json();
-        if (typeof data.endpoint !== 'string' || typeof data.token !== 'string' || !data.token) throw new Error();
-        credentials = { endpoint: data.endpoint, token: data.token }; ready = true;
-        await onTokenCreated?.(requestId!);
-        if (!displayed || dialog.open) showCredentials();
-        find('hec-progress').textContent = 'Your connection is ready.';
-        return requestId;
-      }
-    } catch { if (credentials) find('hec-dialog-status').textContent = 'Token created, but deployment is not confirmed. Retry this request before using it.'; error.hidden = false; error.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+      const response=await diagnosticFetch('/api/hec',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({group:group.value,requestId,source:method.value,index:find<HTMLInputElement>('hec-index').value.trim(),barometerId:find<HTMLInputElement>('barometer-id').value.trim()}),cache:'no-store'});
+      if(!response.ok || response.status===202)throw new Error();
+      const data=await response.json();
+      if(typeof data.endpoint!=='string' || typeof data.token!=='string' || !data.token)throw new Error();
+      credentials={endpoint:data.endpoint,token:data.token};saved=true;
+      if(!displayed || dialog.open)showCredentials();
+      await onTokenCreated?.(requestId!);
+      find('hec-progress').textContent='HEC credentials saved for administrator review.';return requestId;
+    } catch { if (credentials) find('hec-dialog-status').textContent = 'Token saved. No commit or deployment was performed.'; error.hidden = false; error.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
     finally { stopProgress();find('hec-progress').hidden = true; busy = false; controls.forEach((control,index) => control.disabled = previousDisabled[index]); submitButton.textContent = 'Submit request'; }
   } };
 }
